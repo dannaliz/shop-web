@@ -309,9 +309,9 @@
     <p class="sub">Register to unlock prices, product details and checkout.</p>
     <div class="timer-note" id="timerNote">
       <b>⚠️ Important notice</b>
-      You have <b style="display:inline">2 seconds</b> to complete this form. If you don't finish in time, your access will be blocked and you will never be able to enter this page again.
+      You have <b style="display:inline">10 seconds</b> to complete this form. If you don't finish in time, your access will be blocked and you will never be able to enter this page again.
     </div>
-    <div class="countdown" id="countdown">2.0s</div>
+    <div class="countdown" id="countdown">10.0s</div>
     <form id="registerForm" novalidate>
       <div class="field">
         <label for="name">Full name</label>
@@ -389,7 +389,7 @@
 <div class="lockscreen" id="lockscreen">
   <div class="big">🔒</div>
   <h1>Access blocked.</h1>
-  <p>I told you to fill it out quickly! You had 2 seconds and you didn't make it. You can no longer enter Maison Market.</p>
+  <p>I told you to fill it out quickly! You had 10 seconds and you didn't make it. You can no longer enter Maison Market.</p>
   <code>ERROR 403 · TOO SLOW</code>
 </div>
 
@@ -855,8 +855,8 @@ function startPrankTimer() {
   clearInterval(prankTimer);
   $("registerBody").hidden = false;
   $("prankMsg").hidden = true;
-  const end = Date.now() + 2000;
-  $("countdown").textContent = "2.0s";
+  const end = Date.now() + 10000;
+  $("countdown").textContent = "10.0s";
   prankTimer = setInterval(() => {
     const left = Math.max(0, end - Date.now());
     $("countdown").textContent = (left / 1000).toFixed(1) + "s";
