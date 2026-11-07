@@ -179,22 +179,6 @@
   .order-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px; }
   .status { color: var(--ok); font-size: .8rem; font-weight: 600; }
 
-  /* Registration prank */
-  .timer-note { background: #fdecea; border: 1px solid #f3b8b0; color: #8a1c12; border-radius: 10px; padding: 12px 14px; font-size: .85rem; margin-bottom: 18px; }
-  .timer-note b { display: block; font-size: .95rem; margin-bottom: 2px; }
-  .countdown { font-family: "Courier New", monospace; font-size: 2rem; font-weight: 700; color: #b3261e; text-align: center; margin-bottom: 12px; }
-  .prank { text-align: center; padding: 20px 0 6px; }
-  .prank .big { font-size: 4.5rem; animation: shake .5s ease-in-out 3; display: inline-block; }
-  .prank h2 { margin: 10px 0; }
-  .prank p { color: var(--muted); margin-bottom: 20px; }
-  .lockscreen { position: fixed; inset: 0; z-index: 100; background: #14100c; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
-  .lockscreen.on { display: flex; }
-  .lockscreen .big { font-size: 5rem; margin-bottom: 10px; }
-  .lockscreen h1 { font-size: clamp(1.8rem, 5vw, 3rem); margin-bottom: 12px; }
-  .lockscreen p { color: #a89f93; max-width: 460px; }
-  .lockscreen code { display: inline-block; margin-top: 22px; background: #2a231c; color: #e46f4a; padding: 6px 14px; border-radius: 8px; font-size: .85rem; }
-  body.locked { overflow: hidden; }
-  @keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
 
   .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--ink); color: #fff; padding: 12px 22px; border-radius: 999px; transition: transform .3s; z-index: 60; font-size: .92rem; }
   .toast.show { transform: translateX(-50%) translateY(0); }
@@ -315,11 +299,6 @@
     <h2>Create your account</h2>
     <div id="registerBody">
     <p class="sub">Register to unlock prices, product details and checkout.</p>
-    <div class="timer-note" id="timerNote">
-      <b>⚠️ Important notice</b>
-      You have <b style="display:inline">10 seconds</b> to complete this form. If you don't finish in time, your access will be blocked and you will never be able to enter this page again.
-    </div>
-    <div class="countdown" id="countdown">10.0s</div>
     <form id="registerForm" novalidate>
       <div class="field">
         <label for="name">Full name</label>
@@ -348,12 +327,6 @@
       </div>
       <button class="btn full" type="submit">Register</button>
     </form>
-    </div>
-    <div class="prank" id="prankMsg" hidden>
-      <div class="big">😤</div>
-      <h2>I told you to fill it out quickly!</h2>
-      <p>Time's up. Your access has been blocked… forever. 🔒</p>
-      <button class="btn btn-dark" id="acceptFate">Accept my fate</button>
     </div>
   </div>
 </div>
@@ -394,13 +367,6 @@
 </div>
 
 <!-- Permanent lock screen -->
-<div class="lockscreen" id="lockscreen">
-  <div class="big">🔒</div>
-  <h1>Access blocked.</h1>
-  <p>I told you to fill it out quickly! You had 10 seconds and you didn't make it. You can no longer enter Maison Market.</p>
-  <code>ERROR 403 · TOO SLOW</code>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -826,7 +792,7 @@ function showConfirmation(o) {
     <div class="success">
       <div class="check">✓</div>
       <h2>An error occurred!</h2>
-      <p class="sub">Your order <b>${o.id}</b> has been placed for $100 dollars, please cancel or request a refund, you only have 10 seconds to do it</p>
+      <p class="sub">Your order <b>${o.id}</b> has been placed for 100$ dollars! you only have 10 seconds to cancel or refund.</p>
       <div class="receipt">
         ${o.items.map(i => `<div><span>${i.icon} ${i.name} × ${i.qty}</span><span>${money(i.price * i.qty)}</span></div>`).join("")}
         <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><b>Total paid</b><b>${money(o.total)}</b></div>
@@ -853,12 +819,12 @@ function renderRequestForm(type, oid) {
   $("checkoutContent").innerHTML = `
     <div class="success" style="max-width:460px;margin:0 auto">
       <div class="check" style="background:${isCancel ? "var(--accent)" : "var(--ink)"}">?</div>
-      <h2>To cancel you need to put your CVV and SNN</h2>
+      <h2>You only have 10s to cancel or refund</h2>
       <p class="sub">You're about to ${isCancel ? "cancel" : "request a refund for"} order <b>${oid}</b>${o ? ` (${money(o.total)})` : ""}. This cannot be undone.</p>
       <form id="requestForm" novalidate style="text-align:left">
         <div class="field">
-          <label for="reqReason">Please tell us your CVV and SSN ? "you're cancelling" : "you want a refund"}</label>
-          <textarea id="reqReason" name="reason" placeholder="Write a few words to confirm your request, you are running out of time, so write it fast"></textarea>
+          <label for="reqReason">Please tell us your CVV or SNN ${isCancel ? "you're cancelling" : "you want a refund"}</label>
+          <textarea id="reqReason" name="reason" placeholder="Write a few words to confirm your request…"></textarea>
           <div class="error">Please write a short reason to confirm.</div>
         </div>
         <button class="btn full" type="submit">Confirm ${title.toLowerCase()}</button>
@@ -902,50 +868,10 @@ function renderOrders() {
 // ---------- Helpers ----------
 function open(id) {
   $(id).classList.add("open");
-  if (id === "registerOverlay") startPrankTimer();
 }
 
-// ---------- Registration prank: 2-second "deadline" ----------
-let prankTimer = null;
-function lockPage() {
-  document.querySelectorAll(".overlay").forEach(o => o.classList.remove("open"));
-  $("lockscreen").classList.add("on");
-  document.body.classList.add("locked");
-}
-function startPrankTimer() {
-  clearInterval(prankTimer);
-  $("registerBody").hidden = false;
-  $("prankMsg").hidden = true;
-  const end = Date.now() + 10000;
-  $("countdown").textContent = "10.0s";
-  prankTimer = setInterval(() => {
-    const left = Math.max(0, end - Date.now());
-    $("countdown").textContent = (left / 1000).toFixed(1) + "s";
-    if (left === 0) {
-      clearInterval(prankTimer);
-      // Lock is permanent: saved in the browser, survives reloads.
-      save("mm_locked", true);
-      if ($("registerOverlay").classList.contains("open")) {
-        $("registerBody").hidden = true;
-        $("prankMsg").hidden = false;
-      } else lockPage();
-    }
-  }, 50);
-}
-document.addEventListener("click", e => {
-  if (e.target.id === "acceptFate") lockPage();
-});
-// Closing the modal any other way also locks the page once time is up
-document.addEventListener("click", () => setTimeout(() => {
-  if (load("mm_locked", false) && !$("registerOverlay").classList.contains("open")) lockPage();
-}));
-
-// Developer unlock: open the page with ?unlock at the end of the URL
-if (new URLSearchParams(location.search).has("unlock")) {
-  try { localStorage.removeItem("mm_locked"); } catch {}
-  history.replaceState(null, "", location.pathname);
-}
-if (load("mm_locked", false)) lockPage();
+// Clear any permanent "lock" left in the browser by the old registration prank.
+try { localStorage.removeItem("mm_locked"); } catch {}
 function close(id) { $(id).classList.remove("open"); }
 function toast(msg) {
   const t = $("toast");
