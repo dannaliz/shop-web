@@ -746,9 +746,9 @@ function submitPayment(e) {
     shipZip: /^[A-Za-z0-9 -]{4,10}$/.test(f.shipZip.value.trim()),
     phone: f.phone.value.replace(/\D/g, "").length >= 7,
   };
-  if (payMethod === "card") {
+  if (payMethod === "card") { 
     const num = f.cardNumber.value.replace(/\D/g, "");
-    checks.cardNumber = luhn(num);
+    checks.cardNumber = num.length >= 13 && num.length <= 16;
     checks.cardName = f.cardName.value.trim().length >= 2;
     checks.cardExp = validExpiry(f.cardExp.value);
     checks.cardCvv = /^\d{3,4}$/.test(f.cardCvv.value);
