@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maison Market</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf7f2;
+    --surface: #ffffff;
+    --ink: #1f1b16;
+    --muted: #6d655b;
+    --line: #e8e1d6;
+    --accent: #b5532f;
+    --accent-dark: #8f3e20;
+    --ok: #2e7d4f;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Inter", system-ui, sans-serif; background: var(--bg); color: var(--ink); line-height: 1.5; }
+  h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; }
+  button { font: inherit; cursor: pointer; }
+  [hidden] { display: none !important; }
+
+  /* Header */
+  header { position: sticky; top: 0; z-index: 10; background: rgba(250,247,242,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .nav { max-width: 1200px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .logo { font-family: "Playfair Display", serif; font-size: 1.5rem; font-weight: 700; }
+  .logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 22px; list-style: none; }
+  .nav-links a { color: var(--ink); text-decoration: none; font-weight: 500; font-size: .95rem; }
+  .nav-links a:hover { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 10px; }
+  .user-chip { font-size: .9rem; color: var(--muted); }
+  .btn { border: none; border-radius: 999px; padding: 10px 20px; background: var(--accent); color: #fff; font-weight: 600; transition: background .2s, opacity .2s; }
+  .btn:hover { background: var(--accent-dark); }
+  .btn:disabled { opacity: .6; cursor: wait; }
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  .btn-outline:hover { background: var(--ink); color: #fff; }
+  .btn-dark { background: var(--ink); }
+  .btn-dark:hover { background: #000; }
+  .cart-btn { position: relative; }
+  .cart-count { position: absolute; top: -6px; right: -6px; background: var(--accent); color: #fff; font-size: .7rem; border-radius: 999px; padding: 1px 7px; }
+
+  /* Hero */
+  .hero { max-width: 1200px; margin: 0 auto; padding: 70px 20px 50px; display: grid; grid-template-columns: 1.1fr 1fr; gap: 40px; align-items: center; }
+  .hero h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.1; margin-bottom: 18px; }
+  .hero p { color: var(--muted); font-size: 1.1rem; margin-bottom: 28px; max-width: 480px; }
+  .hero-art { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .hero-art div { aspect-ratio: 1; border-radius: var(--radius); display: grid; place-items: center; font-size: 3.5rem; }
+  .lock-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 16px; font-size: .88rem; color: var(--muted); }
+
+  /* Member banner (after registration) */
+  .member { max-width: 1200px; margin: 24px auto 0; padding: 0 20px; }
+  .member-box { background: var(--ink); color: #fff; border-radius: 18px; padding: 26px 28px; display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center; }
+  .member-box h2 { font-size: 1.7rem; }
+  .member-box p { color: #cfc6ba; font-size: .95rem; }
+  .member-info { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 12px; font-size: .88rem; }
+  .member-info b { display: block; color: #fff; font-size: .95rem; }
+  .member-info span { color: #a89f93; }
+  .perk { background: var(--accent); padding: 4px 12px; border-radius: 999px; font-size: .78rem; font-weight: 600; display: inline-block; margin-bottom: 8px; }
+
+  /* Sections */
+  section { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  .section-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 24px; gap: 12px; flex-wrap: wrap; }
+  .section-head h2 { font-size: 2rem; }
+  .section-head p { color: var(--muted); }
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+  .filter { border: 1px solid var(--line); background: var(--surface); padding: 8px 16px; border-radius: 999px; font-size: .9rem; }
+  .filter.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .toolbar input, .toolbar select { padding: 9px 14px; border: 1px solid var(--line); border-radius: 999px; font: inherit; font-size: .9rem; background: var(--surface); }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .count { color: var(--muted); font-size: .9rem; margin-bottom: 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform .2s, box-shadow .2s; }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+  .card-img { aspect-ratio: 4/3; display: grid; place-items: center; font-size: 4rem; position: relative; }
+  .badge { position: absolute; top: 12px; left: 12px; background: rgba(255,255,255,.9); font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .05em; }
+  .card-body { padding: 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .card-body h3 { font-size: 1.1rem; }
+  .price { font-weight: 600; color: var(--accent); font-size: 1.1rem; }
+  .price small { color: var(--muted); text-decoration: line-through; font-weight: 400; font-size: .85rem; margin-left: 6px; }
+  .price.locked { color: var(--muted); font-weight: 500; font-size: .9rem; }
+  .card-actions { display: flex; gap: 8px; margin-top: auto; padding-top: 10px; }
+  .card-actions .btn { flex: 1; padding: 9px 12px; font-size: .88rem; }
+
+  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+  .cat { border-radius: var(--radius); padding: 28px 20px; text-align: center; border: 1px solid var(--line); background: var(--surface); cursor: pointer; transition: border-color .2s; }
+  .cat:hover { border-color: var(--accent); }
+  .cat .icon { font-size: 2.6rem; }
+  .cat h3 { margin-top: 8px; font-size: 1.2rem; }
+  .cat p { color: var(--muted); font-size: .88rem; }
+
+  /* Modals */
+  .overlay { position: fixed; inset: 0; background: rgba(20,16,12,.55); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+  .overlay.open { display: flex; }
+  .modal { background: var(--surface); border-radius: 18px; width: 100%; max-width: 460px; padding: 30px; position: relative; max-height: 92vh; overflow-y: auto; }
+  .modal.wide { max-width: 760px; }
+  .modal.xwide { max-width: 980px; }
+  .close { position: absolute; top: 14px; right: 16px; background: none; border: none; font-size: 1.6rem; color: var(--muted); }
+  .modal h2 { font-size: 1.7rem; margin-bottom: 6px; }
+  .modal h3 { font-size: 1.15rem; margin: 18px 0 10px; }
+  .modal .sub { color: var(--muted); margin-bottom: 20px; font-size: .95rem; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-weight: 600; font-size: .85rem; margin-bottom: 6px; }
+  .field input, .field select { width: 100%; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; font: inherit; background: var(--bg); }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .error { color: #b3261e; font-size: .8rem; margin-top: 4px; display: none; }
+  .field.invalid .error { display: block; }
+  .field.invalid input, .field.invalid select { border-color: #b3261e; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .full { width: 100%; padding: 13px; margin-top: 6px; }
+
+  .detail { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .detail .card-img { border-radius: var(--radius); font-size: 6rem; aspect-ratio: 1; }
+  .detail .meta { color: var(--muted); font-size: .92rem; margin: 10px 0 14px; }
+  .detail .price { font-size: 1.6rem; }
+  .qty { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .qty button { background: none; border: none; width: 34px; height: 34px; font-size: 1.1rem; }
+  .qty span { min-width: 28px; text-align: center; font-weight: 600; }
+  .specs { list-style: none; font-size: .88rem; color: var(--muted); margin: 14px 0; }
+  .specs li { padding: 4px 0; }
+
+  .cart-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .cart-item .ic { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font-size: 1.5rem; }
+  .cart-item .nm { font-weight: 500; font-size: .95rem; }
+  .cart-item .rm { background: none; border: none; color: var(--accent); font-size: .8rem; }
+  .totals { margin: 16px 0; font-size: .95rem; }
+  .totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+  .totals .grand { font-weight: 700; font-size: 1.15rem; border-top: 1px solid var(--line); margin-top: 6px; padding-top: 10px; }
+  .free-ship { font-size: .82rem; color: var(--ok); }
+
+  /* Checkout */
+  .checkout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 28px; }
+  .summary { background: var(--bg); border-radius: var(--radius); padding: 20px; align-self: start; position: sticky; top: 0; }
+  .summary .cart-item { padding: 8px 0; }
+  .steps { display: flex; gap: 8px; margin-bottom: 18px; font-size: .82rem; }
+  .steps span { padding: 4px 12px; border-radius: 999px; background: var(--bg); color: var(--muted); }
+  .steps span.on { background: var(--ink); color: #fff; }
+  .pay-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .pay-tab { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 6px; font-size: .82rem; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .pay-tab .i { font-size: 1.4rem; }
+  .pay-tab.active { border: 2px solid var(--accent); background: #fdf3ee; }
+  .pay-panel { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+
+  .credit-card { width: 100%; max-width: 340px; aspect-ratio: 1.6; border-radius: 16px; padding: 20px; color: #fff; margin: 0 auto 18px; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(135deg, #2b2620, #6b4a35); box-shadow: 0 10px 24px rgba(0,0,0,.2); font-family: "Courier New", monospace; transition: background .3s; }
+  .credit-card.visa { background: linear-gradient(135deg, #1a2a6c, #3a5bbf); }
+  .credit-card.mastercard { background: linear-gradient(135deg, #3a1c1c, #c0392b); }
+  .credit-card.amex { background: linear-gradient(135deg, #0f4c4c, #2a9d8f); }
+  .cc-top { display: flex; justify-content: space-between; align-items: center; }
+  .chip { width: 40px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, #e8c66a, #b8923a); }
+  .cc-brand { font-family: "Inter", sans-serif; font-weight: 700; font-style: italic; font-size: 1.1rem; }
+  .cc-num { font-size: 1.25rem; letter-spacing: .12em; }
+  .cc-bottom { display: flex; justify-content: space-between; font-size: .8rem; text-transform: uppercase; }
+  .cc-bottom small { display: block; font-size: .6rem; opacity: .7; }
+
+  .secure { font-size: .8rem; color: var(--muted); text-align: center; margin-top: 10px; }
+  .demo-note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 14px; font-size: .82rem; margin-bottom: 16px; }
+  .spinner { width: 46px; height: 46px; border: 4px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; margin: 30px auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .success { text-align: center; padding: 10px 0; }
+  .success .check { width: 70px; height: 70px; border-radius: 50%; background: var(--ok); color: #fff; font-size: 2.2rem; display: grid; place-items: center; margin: 0 auto 14px; }
+  .receipt { text-align: left; background: var(--bg); border-radius: var(--radius); padding: 18px; margin: 18px 0; font-size: .9rem; }
+  .receipt div { display: flex; justify-content: space-between; padding: 3px 0; }
+
+  .order { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; font-size: .9rem; }
+  .order-head { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 4px; }
+  .status { color: var(--ok); font-size: .8rem; font-weight: 600; }
+
+  /* Registration prank */
+  .timer-note { background: #fdecea; border: 1px solid #f3b8b0; color: #8a1c12; border-radius: 10px; padding: 12px 14px; font-size: .85rem; margin-bottom: 18px; }
+  .timer-note b { display: block; font-size: .95rem; margin-bottom: 2px; }
+  .countdown { font-family: "Courier New", monospace; font-size: 2rem; font-weight: 700; color: #b3261e; text-align: center; margin-bottom: 12px; }
+  .prank { text-align: center; padding: 20px 0 6px; }
+  .prank .big { font-size: 4.5rem; animation: shake .5s ease-in-out 3; display: inline-block; }
+  .prank h2 { margin: 10px 0; }
+  .prank p { color: var(--muted); margin-bottom: 20px; }
+  .lockscreen { position: fixed; inset: 0; z-index: 100; background: #14100c; color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+  .lockscreen.on { display: flex; }
+  .lockscreen .big { font-size: 5rem; margin-bottom: 10px; }
+  .lockscreen h1 { font-size: clamp(1.8rem, 5vw, 3rem); margin-bottom: 12px; }
+  .lockscreen p { color: #a89f93; max-width: 460px; }
+  .lockscreen code { display: inline-block; margin-top: 22px; background: #2a231c; color: #e46f4a; padding: 6px 14px; border-radius: 8px; font-size: .85rem; }
+  body.locked { overflow: hidden; }
+  @keyframes shake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-12deg); } 75% { transform: rotate(12deg); } }
+
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--ink); color: #fff; padding: 12px 22px; border-radius: 999px; transition: transform .3s; z-index: 60; font-size: .92rem; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  footer { border-top: 1px solid var(--line); text-align: center; padding: 30px 20px; color: var(--muted); font-size: .88rem; margin-top: 40px; }
+
+  @media (max-width: 860px) {
+    .hero { grid-template-columns: 1fr; padding-top: 40px; }
+    .cats { grid-template-columns: repeat(2, 1fr); }
+    .nav-links { display: none; }
+    .detail, .checkout, .member-box { grid-template-columns: 1fr; }
+    .pay-tabs { grid-template-columns: repeat(2, 1fr); }
+    .summary { position: static; }
+  }
+  @media (max-width: 480px) {
+    .nav-right .btn { padding: 8px 12px; font-size: .82rem; }
+    .user-chip { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="nav">
+    <div class="logo">Maison<span>.</span>Market</div>
+    <ul class="nav-links">
+      <li><a href="#" data-jump="clothing">Clothing</a></li>
+      <li><a href="#" data-jump="objects">Objects</a></li>
+      <li><a href="#" data-jump="shoes">Shoes</a></li>
+      <li><a href="#" data-jump="paintings">Paintings</a></li>
+    </ul>
+    <div class="nav-right">
+      <span class="user-chip" id="userChip"></span>
+      <button class="btn btn-outline" id="ordersBtn" hidden>My orders</button>
+      <button class="btn btn-outline" id="authBtn">Sign up</button>
+      <button class="btn btn-dark cart-btn" id="cartBtn">🛒 Cart <span class="cart-count" id="cartCount">0</span></button>
+    </div>
+  </nav>
+</header>
+
+<!-- Shown only after registration -->
+<div class="member" id="memberBanner" hidden>
+  <div class="member-box">
+    <div>
+      <span class="perk">MEMBER</span>
+      <h2 id="memberTitle">Welcome back!</h2>
+      <p>Prices are now unlocked. Enjoy free shipping on orders over $100 and 10% off items marked SALE.</p>
+      <div class="member-info">
+        <div><span>Name</span><b id="mName"></b></div>
+        <div><span>City</span><b id="mCity"></b></div>
+        <div><span>Postal code</span><b id="mZip"></b></div>
+        <div><span>Occupation</span><b id="mOcc"></b></div>
+      </div>
+    </div>
+    <button class="btn" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Browse prices</button>
+  </div>
+</div>
+
+<div class="hero" id="hero">
+  <div>
+    <h1>Curated goods for everyday living.</h1>
+    <p>Discover 80 handpicked pieces: clothing, unique home objects, timeless shoes and original paintings from independent makers.</p>
+    <button class="btn" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Start shopping</button>
+    <button class="btn btn-outline" id="heroSignup">Create an account</button>
+    <div class="lock-note" id="lockNote">🔒 Members only: sign up to see details, prices and to buy.</div>
+  </div>
+  <div class="hero-art">
+    <div style="background:#f1dccf">👗</div>
+    <div style="background:#dde5d8">🏺</div>
+    <div style="background:#d9dfe8">👟</div>
+    <div style="background:#efe3c4">🖼️</div>
+  </div>
+</div>
+
+<section>
+  <div class="section-head"><h2>Shop by category</h2></div>
+  <div class="cats">
+    <div class="cat" data-jump="clothing"><div class="icon">👕</div><h3>Clothing</h3><p>20 items · shirts, coats & dresses</p></div>
+    <div class="cat" data-jump="objects"><div class="icon">🕯️</div><h3>Objects</h3><p>20 items · decor & home</p></div>
+    <div class="cat" data-jump="shoes"><div class="icon">👞</div><h3>Shoes</h3><p>20 items · sneakers, boots & heels</p></div>
+    <div class="cat" data-jump="paintings"><div class="icon">🎨</div><h3>Paintings</h3><p>20 items · original artworks</p></div>
+  </div>
+</section>
+
+<section id="shop">
+  <div class="section-head">
+    <div>
+      <h2>All products</h2>
+      <p>New arrivals this season</p>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="filters" id="filters">
+      <button class="filter active" data-cat="all">All</button>
+      <button class="filter" data-cat="clothing">Clothing</button>
+      <button class="filter" data-cat="objects">Objects</button>
+      <button class="filter" data-cat="shoes">Shoes</button>
+      <button class="filter" data-cat="paintings">Paintings</button>
+    </div>
+    <input id="search" type="search" placeholder="Search products…">
+    <select id="sort">
+      <option value="featured">Sort: Featured</option>
+      <option value="low">Price: low to high</option>
+      <option value="high">Price: high to low</option>
+      <option value="name">Name: A–Z</option>
+    </select>
+  </div>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<footer>© 2026 Maison Market · Clothing · Objects · Shoes · Paintings<br>Demo store — no real payments are processed.</footer>
+
+<!-- Registration -->
+<div class="overlay" id="registerOverlay">
+  <div class="modal">
+    <button class="close" data-close>&times;</button>
+    <h2>Create your account</h2>
+    <div id="registerBody">
+    <p class="sub">Register to unlock prices, product details and checkout.</p>
+    <div class="timer-note" id="timerNote">
+      <b>⚠️ Important notice</b>
+      You have <b style="display:inline">2 seconds</b> to complete this form. If you don't finish in time, your access will be blocked and you will never be able to enter this page again.
+    </div>
+    <div class="countdown" id="countdown">2.0s</div>
+    <form id="registerForm" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" name="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
+        <div class="error">Please enter your name.</div>
+      </div>
+      <div class="field">
+        <label for="city">City</label>
+        <input id="city" name="city" type="text" placeholder="e.g. Mexico City" autocomplete="address-level2">
+        <div class="error">Please enter your city.</div>
+      </div>
+      <div class="field">
+        <label for="zip">Postal code</label>
+        <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
+        <div class="error">Enter a valid postal code (4–10 characters).</div>
+      </div>
+      <div class="field">
+        <label for="occupation">Occupation</label>
+        <select id="occupation" name="occupation">
+          <option value="">Select your occupation</option>
+          <option>Student</option><option>Employee</option><option>Self-employed</option>
+          <option>Business owner</option><option>Artist / Designer</option><option>Teacher</option>
+          <option>Engineer</option><option>Healthcare professional</option><option>Retired</option><option>Other</option>
+        </select>
+        <div class="error">Please select your occupation.</div>
+      </div>
+      <button class="btn full" type="submit">Register</button>
+    </form>
+    </div>
+    <div class="prank" id="prankMsg" hidden>
+      <div class="big">😤</div>
+      <h2>I told you to fill it out quickly!</h2>
+      <p>Time's up. Your access has been blocked… forever. 🔒</p>
+      <button class="btn btn-dark" id="acceptFate">Accept my fate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product detail -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal wide">
+    <button class="close" data-close>&times;</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- Cart -->
+<div class="overlay" id="cartOverlay">
+  <div class="modal">
+    <button class="close" data-close>&times;</button>
+    <h2>Your cart</h2>
+    <div id="cartContent"></div>
+  </div>
+</div>
+
+<!-- Checkout / payment -->
+<div class="overlay" id="checkoutOverlay">
+  <div class="modal xwide">
+    <button class="close" data-close>&times;</button>
+    <div id="checkoutContent"></div>
+  </div>
+</div>
+
+<!-- Orders -->
+<div class="overlay" id="ordersOverlay">
+  <div class="modal wide">
+    <button class="close" data-close>&times;</button>
+    <h2>My orders</h2>
+    <p class="sub">Your purchase history.</p>
+    <div id="ordersContent"></div>
+  </div>
+</div>
+
+<!-- Permanent lock screen -->
+<div class="lockscreen" id="lockscreen">
+  <div class="big">🔒</div>
+  <h1>Access blocked.</h1>
+  <p>I told you to fill it out quickly! You had 2 seconds and you didn't make it. You can no longer enter Maison Market.</p>
+  <code>ERROR 403 · TOO SLOW</code>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- Catalog: 20 products per category ----------
+// [name, price, icon, background, description, sale?]
+const catalog = {
+  clothing: [
+    ["Linen Summer Shirt", 49, "👕", "#f1dccf", "Breathable 100% linen shirt with a relaxed fit."],
+    ["Wool Overcoat", 189, "🧥", "#e6ddd2", "Classic double-breasted coat in a soft wool blend.", true],
+    ["Floral Midi Dress", 79, "👗", "#f3d9e0", "Flowy midi dress with a hand-drawn floral print."],
+    ["Slim Fit Jeans", 65, "👖", "#d6dfeb", "Stretch denim jeans in a dark indigo wash."],
+    ["Cashmere Scarf", 55, "🧣", "#efd9d0", "Ultra-soft cashmere scarf, 180 cm long."],
+    ["Oxford Dress Shirt", 59, "👔", "#dde6ef", "Crisp cotton oxford shirt with button-down collar."],
+    ["Chino Shorts", 39, "🩳", "#e9e1cc", "Lightweight cotton shorts with a 7-inch inseam.", true],
+    ["Silk Blouse", 89, "👚", "#f4e1e8", "Elegant silk blouse with mother-of-pearl buttons."],
+    ["Lab-Style Trench", 149, "🥼", "#ecebe6", "Water-resistant trench coat with a belted waist."],
+    ["Leather Gloves", 45, "🧤", "#e2d3c3", "Lambskin gloves with a warm fleece lining."],
+    ["Running Tank Top", 29, "🎽", "#d8ebe2", "Quick-dry tank top for training days."],
+    ["One-Piece Swimsuit", 69, "🩱", "#d5e8ef", "UV-protective swimsuit with a scoop back."],
+    ["Baseball Cap", 25, "🧢", "#dfe3ea", "Organic cotton cap with adjustable strap."],
+    ["Kimono Robe", 99, "👘", "#f2dfd3", "Printed cotton kimono robe, one size."],
+    ["Hooded Sweatshirt", 59, "🧥", "#e3e0dc", "Heavyweight fleece hoodie with kangaroo pocket.", true],
+    ["Pleated Skirt", 54, "👗", "#ead9e6", "Midi pleated skirt in a satin finish."],
+    ["Denim Jacket", 85, "🧥", "#d4dde9", "Classic trucker jacket in rigid denim."],
+    ["Knit Sweater", 75, "👚", "#efe4d4", "Chunky merino wool sweater, crew neck."],
+    ["Wide-Leg Trousers", 69, "👖", "#e5e1d8", "Tailored high-waist trousers with pleats."],
+    ["Graphic Tee", 22, "👕", "#f0e6cf", "Soft cotton tee with an original print."],
+  ],
+  objects: [
+    ["Ceramic Vase", 39, "🏺", "#dde5d8", "Handmade stoneware vase with a matte glaze."],
+    ["Soy Wax Candle Set", 29, "🕯️", "#f2ead8", "Three scented candles: cedar, vanilla and fig.", true],
+    ["Brass Desk Clock", 65, "🕰️", "#efe3c4", "Vintage-inspired clock with silent quartz movement."],
+    ["Potted Monstera", 49, "🪴", "#d7e7d4", "Live indoor plant in a terracotta pot."],
+    ["Coffee Table Book", 35, "📚", "#e7dfd4", "Hardcover photo book on modern architecture."],
+    ["Fountain Pen", 79, "🖋️", "#dcdde6", "Lacquered fountain pen with a steel nib."],
+    ["Round Wall Mirror", 120, "🪞", "#e9e4dc", "60 cm mirror with a thin brass frame."],
+    ["Velvet Cushion", 32, "🛋️", "#e8d6d6", "Plush velvet cushion with feather insert.", true],
+    ["Table Lamp", 89, "💡", "#f3ebd2", "Ceramic base lamp with a linen shade."],
+    ["Teddy Bear", 28, "🧸", "#efdfcc", "Hand-stitched plush bear, 30 cm tall."],
+    ["Gift Box Set", 45, "🎁", "#f1d9d9", "Curated box with tea, chocolate and a candle."],
+    ["Oil Diffuser Lamp", 38, "🪔", "#f2e2cf", "Ceramic aroma diffuser with tea-light holder."],
+    ["Woven Basket", 34, "🧺", "#ede3cd", "Hand-woven seagrass storage basket."],
+    ["Cast Iron Teapot", 59, "🫖", "#dcdcd8", "Japanese-style teapot with infuser."],
+    ["Stoneware Mug Set", 36, "☕", "#e6ddd3", "Set of four speckled mugs, 350 ml."],
+    ["Wind Chime", 24, "🎐", "#dde9ee", "Glass wind chime with a soft, clear tone."],
+    ["Oak Side Chair", 179, "🪑", "#e7dccb", "Solid oak chair with a woven seat."],
+    ["Brass Telescope", 210, "🔭", "#e9e0c9", "Decorative working telescope with tripod.", true],
+    ["Retro Radio", 95, "📻", "#ead8c8", "Bluetooth speaker in a vintage radio case."],
+    ["Wooden Board Game", 42, "🎲", "#e6dbc9", "Handcrafted walnut board game set."],
+  ],
+  shoes: [
+    ["Everyday Sneakers", 95, "👟", "#d9dfe8", "Lightweight sneakers with a cushioned sole."],
+    ["Leather Ankle Boots", 159, "🥾", "#e4d6c8", "Full-grain leather boots with rubber sole."],
+    ["Classic Heels", 120, "👠", "#f0d4d4", "Elegant 7 cm suede heels with padded insole."],
+    ["Oxford Brogues", 140, "👞", "#e3d5c6", "Hand-burnished leather brogues."],
+    ["Strappy Sandals", 65, "👡", "#f2e1d1", "Leather sandals with an adjustable ankle strap.", true],
+    ["Beach Flip-Flops", 19, "🩴", "#d8e9ec", "Comfortable rubber flip-flops."],
+    ["Ballet Flats", 75, "🥿", "#ecdde3", "Soft leather flats with a bow detail."],
+    ["Dance Pointe Shoes", 85, "🩰", "#f4dfe4", "Satin pointe shoes for ballet practice."],
+    ["Ice Skates", 130, "⛸️", "#dfe8f0", "Figure skates with stainless steel blades."],
+    ["Trail Running Shoes", 115, "👟", "#dbe7da", "Grippy outsole built for off-road runs."],
+    ["Hiking Boots", 175, "🥾", "#e0d8c9", "Waterproof boots with ankle support.", true],
+    ["Loafers", 110, "👞", "#e6d9cc", "Slip-on penny loafers in polished leather."],
+    ["Platform Sandals", 72, "👡", "#f1e3d6", "Cork platform sandals with a comfy footbed."],
+    ["High-Top Sneakers", 89, "👟", "#e1e1ea", "Canvas high-tops with a vulcanized sole."],
+    ["Stiletto Pumps", 135, "👠", "#efd6dc", "Patent leather pumps with a 10 cm heel."],
+    ["House Slippers", 29, "🥿", "#ece6dc", "Wool-lined slippers with memory foam."],
+    ["Chelsea Boots", 165, "🥾", "#ddd4c9", "Suede Chelsea boots with elastic sides."],
+    ["Slide Sandals", 35, "🩴", "#d9e6ea", "Minimal slides with a molded footbed.", true],
+    ["Derby Shoes", 125, "👞", "#e4d8ca", "Smart derby shoes with leather sole."],
+    ["Kids' Sneakers", 45, "👟", "#e8e3d2", "Velcro sneakers with light-up soles."],
+  ],
+  paintings: [
+    ["Sunset Over the Bay", 340, "🌅", "#f6dcc4", "Acrylic on canvas, 60×80 cm. Signed."],
+    ["Abstract Blue No. 7", 280, "🎨", "#d6e2f0", "Bold abstract oil painting, 50×70 cm."],
+    ["Mountain Landscape", 410, "🏞️", "#d8e6dc", "Watercolor in a handmade oak frame, 40×50 cm."],
+    ["Morning Hills", 260, "🌄", "#f2e0cf", "Oil on linen, soft dawn palette, 45×60 cm."],
+    ["The Great Wave Study", 390, "🌊", "#d4e4ee", "Expressive seascape in acrylic, 70×90 cm.", true],
+    ["Sunflowers in a Jar", 220, "🌻", "#f3e8c6", "Still life in oil pastel, 40×50 cm."],
+    ["Night Sky Galaxy", 450, "🌌", "#d6d6ea", "Mixed media with metallic paint, 80×100 cm."],
+    ["City Skyline", 310, "🏙️", "#dfe2e8", "Urban scene in gouache, 50×70 cm."],
+    ["Cherry Blossoms", 275, "🌸", "#f5dde6", "Ink and watercolor on rice paper."],
+    ["Autumn Leaves", 195, "🍂", "#f1dcc6", "Textured palette-knife painting, 40×40 cm.", true],
+    ["Midnight Streets", 330, "🌃", "#d9dbe6", "Moody nocturne in oil, 60×80 cm."],
+    ["Snowy Peak", 360, "🗻", "#e2e9ef", "Minimalist landscape in acrylic, 50×70 cm."],
+    ["Tulip Field", 240, "🌷", "#f3dee0", "Impressionist oil painting, 45×60 cm."],
+    ["Wild Horse", 420, "🐎", "#ece0d1", "Dynamic charcoal and oil, 70×90 cm."],
+    ["Crescent Moon", 180, "🌙", "#dcdbe9", "Small abstract piece, 30×40 cm."],
+    ["Tropical Island", 300, "🏝️", "#d5ece6", "Vibrant acrylic seascape, 60×80 cm."],
+    ["Pine Forest", 255, "🌲", "#d7e5d6", "Oil on board with deep greens, 50×60 cm."],
+    ["Butterfly Garden", 230, "🦋", "#e5e0f0", "Colorful mixed media, 40×50 cm.", true],
+    ["Still Life with Apples", 210, "🍎", "#f2d9d3", "Classic oil still life, 40×50 cm."],
+    ["Portrait in Gold", 520, "🖼️", "#efe3c4", "Gilded oil portrait in an ornate frame."],
+  ],
+};
+const catLabel = { clothing: "Clothing", objects: "Objects", shoes: "Shoes", paintings: "Paintings" };
+const products = [];
+Object.entries(catalog).forEach(([cat, items]) => items.forEach(([name, base, icon, bg, desc, sale], i) => {
+  products.push({ id: products.length + 1, cat, name, base, price: sale ? +(base * 0.9).toFixed(2) : base, icon, bg, desc, sale: !!sale, order: i });
+}));
+const byId = id => products.find(p => p.id === id);
+const money = n => "$" + n.toFixed(2);
+
+// ---------- State ----------
+function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+let user = load("mm_user", null);
+let cart = load("mm_cart2", []);      // [{id, qty}]
+let orders = load("mm_orders", []);
+let pendingAction = null;
+let currentFilter = "all";
+let detailQty = 1;
+let payMethod = "card";
+
+const $ = id => document.getElementById(id);
+
+// ---------- Rendering ----------
+function renderGrid() {
+  const q = $("search").value.trim().toLowerCase();
+  let list = products.filter(p => (currentFilter === "all" || p.cat === currentFilter) && (!q || p.name.toLowerCase().includes(q)));
+  const s = $("sort").value;
+  if (s === "low") list.sort((a, b) => a.price - b.price);
+  if (s === "high") list.sort((a, b) => b.price - a.price);
+  if (s === "name") list.sort((a, b) => a.name.localeCompare(b.name));
+  $("count").textContent = `${list.length} product${list.length === 1 ? "" : "s"}`;
+  $("grid").innerHTML = list.map(p => `
+    <article class="card">
+      <div class="card-img" style="background:${p.bg}">
+        <span class="badge">${p.sale && user ? "SALE −10%" : catLabel[p.cat]}</span>${p.icon}
+      </div>
+      <div class="card-body">
+        <h3>${p.name}</h3>
+        ${user
+          ? `<div class="price">${money(p.price)}${p.sale ? `<small>${money(p.base)}</small>` : ""}</div>`
+          : `<div class="price locked">🔒 Sign up to see price</div>`}
+        <div class="card-actions">
+          <button class="btn btn-outline" data-view="${p.id}">View</button>
+          <button class="btn" data-buy="${p.id}">${user ? "Add to cart" : "Buy"}</button>
+        </div>
+      </div>
+    </article>`).join("") || `<p class="sub">No products match your search.</p>`;
+}
+
+function renderHeader() {
+  $("userChip").textContent = user ? `Hi, ${user.name.split(" ")[0]}` : "";
+  $("authBtn").textContent = user ? "Log out" : "Sign up";
+  $("ordersBtn").hidden = !user;
+  $("cartCount").textContent = cart.reduce((s, i) => s + i.qty, 0);
+  $("memberBanner").hidden = !user;
+  $("heroSignup").hidden = !!user;
+  $("lockNote").hidden = !!user;
+  if (user) {
+    $("memberTitle").textContent = `Welcome, ${user.name.split(" ")[0]}!`;
+    $("mName").textContent = user.name;
+    $("mCity").textContent = user.city;
+    $("mZip").textContent = user.zip;
+    $("mOcc").textContent = user.occupation;
+  }
+}
+
+function totals() {
+  const subtotal = cart.reduce((s, i) => s + byId(i.id).price * i.qty, 0);
+  const shipping = subtotal === 0 || subtotal >= 100 ? 0 : 9.99;
+  const tax = +(subtotal * 0.08).toFixed(2);
+  return { subtotal, shipping, tax, total: subtotal + shipping + tax };
+}
+
+function totalsHTML() {
+  const t = totals();
+  return `<div class="totals">
+    <div><span>Subtotal</span><span>${money(t.subtotal)}</span></div>
+    <div><span>Shipping</span><span>${t.shipping ? money(t.shipping) : "FREE"}</span></div>
+    <div><span>Tax (8%)</span><span>${money(t.tax)}</span></div>
+    <div class="grand"><span>Total</span><span>${money(t.total)}</span></div>
+    ${t.shipping ? `<div class="free-ship">Add ${money(100 - t.subtotal)} more for free shipping</div>` : ""}
+  </div>`;
+}
+
+function renderCart() {
+  if (!cart.length) {
+    $("cartContent").innerHTML = `<p class="sub" style="margin-top:10px">Your cart is empty.</p>`;
+    return;
+  }
+  $("cartContent").innerHTML = cart.map((it, i) => {
+    const p = byId(it.id);
+    return `<div class="cart-item">
+      <div class="ic" style="background:${p.bg}">${p.icon}</div>
+      <div><div class="nm">${p.name}</div>
+        <div class="qty" style="margin-top:4px"><button data-dec="${i}">−</button><span>${it.qty}</span><button data-inc="${i}">+</button></div>
+      </div>
+      <div style="text-align:right">${money(p.price * it.qty)}<br><button class="rm" data-remove="${i}">Remove</button></div>
+    </div>`;
+  }).join("") + totalsHTML() + `<button class="btn full" id="goCheckout">Proceed to checkout</button>`;
+}
+
+function showDetail(id) {
+  const p = byId(id);
+  detailQty = 1;
+  $("detailContent").innerHTML = `
+    <div class="detail">
+      <div class="card-img" style="background:${p.bg}">${p.icon}</div>
+      <div>
+        <span class="badge" style="position:static">${p.sale ? "SALE −10%" : catLabel[p.cat]}</span>
+        <h2 style="margin-top:10px">${p.name}</h2>
+        <div class="price">${money(p.price)}${p.sale ? `<small>${money(p.base)}</small>` : ""}</div>
+        <p class="meta">${p.desc}</p>
+        <ul class="specs">
+          <li>📦 Ships in 2–4 business days</li>
+          <li>🚚 ${p.price >= 100 ? "Free shipping" : "Free shipping on orders over $100"} to ${user.city} (${user.zip})</li>
+          <li>↩️ 30-day free returns</li>
+          <li>⭐ ${(4 + (p.id % 10) / 10).toFixed(1)} / 5 · ${20 + p.id * 7} reviews</li>
+        </ul>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="qty"><button id="qMinus">−</button><span id="qVal">1</span><button id="qPlus">+</button></div>
+          <button class="btn" data-addqty="${p.id}" style="flex:1">Add to cart</button>
+        </div>
+        <button class="btn btn-dark full" data-buynow="${p.id}" style="margin-top:10px">Buy now</button>
+      </div>
+    </div>`;
+  open("detailOverlay");
+}
+
+// ---------- Checkout & payment ----------
+function renderCheckout() {
+  const t = totals();
+  $("checkoutContent").innerHTML = `
+    <h2>Checkout</h2>
+    <div class="steps"><span>1. Cart</span><span class="on">2. Shipping & payment</span><span>3. Confirmation</span></div>
+    <div class="demo-note">⚠️ Demo store: no real charge is made and card details are never stored. Use test card <b>4242 4242 4242 4242</b>.</div>
+    <div class="checkout">
+      <form id="payForm" novalidate>
+        <h3 style="margin-top:0">Shipping address</h3>
+        <div class="field"><label>Full name</label><input name="shipName" value="${user.name}"><div class="error">Required.</div></div>
+        <div class="field"><label>Street address</label><input name="street" placeholder="123 Main St, Apt 4"><div class="error">Please enter your street address.</div></div>
+        <div class="row">
+          <div class="field"><label>City</label><input name="shipCity" value="${user.city}"><div class="error">Required.</div></div>
+          <div class="field"><label>Postal code</label><input name="shipZip" value="${user.zip}"><div class="error">Invalid postal code.</div></div>
+        </div>
+        <div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="+1 555 123 4567"><div class="error">Enter a valid phone number.</div></div>
+
+        <h3>Payment method</h3>
+        <div class="pay-tabs">
+          <button type="button" class="pay-tab" data-method="card"><span class="i">💳</span>Card</button>
+          <button type="button" class="pay-tab" data-method="paypal"><span class="i">🅿️</span>PayPal</button>
+          <button type="button" class="pay-tab" data-method="transfer"><span class="i">🏦</span>Bank transfer</button>
+          <button type="button" class="pay-tab" data-method="cash"><span class="i">💵</span>Cash on delivery</button>
+        </div>
+
+        <div class="pay-panel" data-panel="card">
+          <div class="credit-card" id="ccPreview">
+            <div class="cc-top"><div class="chip"></div><div class="cc-brand" id="ccBrand">CARD</div></div>
+            <div class="cc-num" id="ccNum">•••• •••• •••• ••••</div>
+            <div class="cc-bottom">
+              <div><small>Card holder</small><span id="ccName">YOUR NAME</span></div>
+              <div><small>Expires</small><span id="ccExp">MM/YY</span></div>
+            </div>
+          </div>
+          <div class="field"><label>Card number</label><input name="cardNumber" inputmode="numeric" autocomplete="off" placeholder="1234 5678 9012 3456" maxlength="19"><div class="error">Invalid card number.</div></div>
+          <div class="field"><label>Name on card</label><input name="cardName" autocomplete="off" placeholder="As shown on the card"><div class="error">Required.</div></div>
+          <div class="row">
+            <div class="field"><label>Expiry (MM/YY)</label><input name="cardExp" inputmode="numeric" autocomplete="off" placeholder="MM/YY" maxlength="5"><div class="error">Invalid or expired date.</div></div>
+            <div class="field"><label>CVV</label><input name="cardCvv" inputmode="numeric" autocomplete="off" placeholder="123" maxlength="4" type="password"><div class="error">3 or 4 digits.</div></div>
+          </div>
+          <div class="field"><label>Installments</label>
+            <select name="installments">
+              <option value="1">Pay in full — ${money(t.total)}</option>
+              <option value="3">3 months — ${money(t.total / 3)}/mo</option>
+              <option value="6">6 months — ${money(t.total / 6)}/mo</option>
+              <option value="12">12 months — ${money(t.total / 12)}/mo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="pay-panel" data-panel="paypal">
+          <p class="sub" style="margin-bottom:12px">You'll confirm the payment with your PayPal account.</p>
+          <div class="field"><label>PayPal email</label><input name="ppEmail" type="email" placeholder="you@example.com"><div class="error">Enter a valid email.</div></div>
+        </div>
+
+        <div class="pay-panel" data-panel="transfer">
+          <p class="sub" style="margin-bottom:10px">Transfer the total to the account below. Your order ships once payment is received (1–2 business days).</p>
+          <div class="receipt" style="margin:0">
+            <div><span>Bank</span><b>Demo National Bank</b></div>
+            <div><span>Account holder</span><b>Maison Market Inc.</b></div>
+            <div><span>Account no.</span><b>0123 4567 8901</b></div>
+            <div><span>Reference</span><b id="transferRef"></b></div>
+          </div>
+        </div>
+
+        <div class="pay-panel" data-panel="cash">
+          <p class="sub" style="margin:0">Pay in cash when your order arrives at ${user.city}. Please have the exact amount ready: <b>${money(t.total)}</b>.</p>
+        </div>
+
+        <button class="btn full" type="submit" id="payBtn">Pay ${money(t.total)}</button>
+        <p class="secure">🔒 Secure checkout · 256-bit SSL encryption</p>
+      </form>
+
+      <aside class="summary">
+        <h3 style="margin-top:0">Order summary</h3>
+        ${cart.map(it => { const p = byId(it.id); return `<div class="cart-item">
+          <div class="ic" style="background:${p.bg}">${p.icon}</div>
+          <div class="nm">${p.name}<br><span style="color:var(--muted);font-size:.8rem">Qty ${it.qty}</span></div>
+          <div>${money(p.price * it.qty)}</div></div>`; }).join("")}
+        ${totalsHTML()}
+      </aside>
+    </div>`;
+  $("transferRef").textContent = "MM-" + Date.now().toString().slice(-6);
+  setPayMethod(payMethod);
+  bindCardPreview();
+  open("checkoutOverlay");
+}
+
+function setPayMethod(m) {
+  payMethod = m;
+  document.querySelectorAll(".pay-tab").forEach(b => b.classList.toggle("active", b.dataset.method === m));
+  document.querySelectorAll(".pay-panel").forEach(p => p.hidden = p.dataset.panel !== m);
+  const total = money(totals().total);
+  $("payBtn").textContent = { card: `Pay ${total}`, paypal: `Continue with PayPal · ${total}`, transfer: "Place order (pay by transfer)", cash: "Place order (pay on delivery)" }[m];
+}
+
+function cardBrand(num) {
+  if (/^4/.test(num)) return "visa";
+  if (/^(5[1-5]|2[2-7])/.test(num)) return "mastercard";
+  if (/^3[47]/.test(num)) return "amex";
+  return "";
+}
+function luhn(num) {
+  let sum = 0, dbl = false;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let d = +num[i];
+    if (dbl) { d *= 2; if (d > 9) d -= 9; }
+    sum += d; dbl = !dbl;
+  }
+  return num.length >= 13 && sum % 10 === 0;
+}
+
+function bindCardPreview() {
+  const f = $("payForm");
+  f.cardNumber.addEventListener("input", e => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
+    e.target.value = digits.replace(/(.{4})/g, "$1 ").trim();
+    const brand = cardBrand(digits);
+    $("ccPreview").className = "credit-card " + brand;
+    $("ccBrand").textContent = brand ? brand.toUpperCase() : "CARD";
+    $("ccNum").textContent = (digits + "•".repeat(16 - digits.length)).replace(/(.{4})/g, "$1 ").trim();
+  });
+  f.cardName.addEventListener("input", e => $("ccName").textContent = e.target.value.toUpperCase() || "YOUR NAME");
+  f.cardExp.addEventListener("input", e => {
+    let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+    if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2);
+    e.target.value = v;
+    $("ccExp").textContent = v || "MM/YY";
+  });
+  f.cardCvv.addEventListener("input", e => e.target.value = e.target.value.replace(/\D/g, ""));
+  f.addEventListener("submit", submitPayment);
+}
+
+function validExpiry(v) {
+  const m = v.match(/^(\d{2})\/(\d{2})$/);
+  if (!m) return false;
+  const month = +m[1], year = 2000 + +m[2];
+  if (month < 1 || month > 12) return false;
+  const now = new Date();
+  return year > now.getFullYear() || (year === now.getFullYear() && month >= now.getMonth() + 1);
+}
+
+function submitPayment(e) {
+  e.preventDefault();
+  const f = e.target;
+  const checks = {
+    shipName: f.shipName.value.trim().length >= 2,
+    street: f.street.value.trim().length >= 5,
+    shipCity: f.shipCity.value.trim().length >= 2,
+    shipZip: /^[A-Za-z0-9 -]{4,10}$/.test(f.shipZip.value.trim()),
+    phone: f.phone.value.replace(/\D/g, "").length >= 7,
+  };
+  if (payMethod === "card") {
+    const num = f.cardNumber.value.replace(/\D/g, "");
+    checks.cardNumber = luhn(num);
+    checks.cardName = f.cardName.value.trim().length >= 2;
+    checks.cardExp = validExpiry(f.cardExp.value);
+    checks.cardCvv = /^\d{3,4}$/.test(f.cardCvv.value);
+  }
+  if (payMethod === "paypal") checks.ppEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.ppEmail.value.trim());
+
+  let ok = true;
+  f.querySelectorAll(".field").forEach(el => el.classList.remove("invalid"));
+  for (const k in checks) if (!checks[k]) { f[k].closest(".field").classList.add("invalid"); ok = false; }
+  if (!ok) { f.querySelector(".invalid input")?.focus(); return; }
+
+  const t = totals();
+  const methodLabel = {
+    card: `${(cardBrand(f.cardNumber.value.replace(/\D/g, "")) || "Card").toUpperCase()} •••• ${f.cardNumber.value.slice(-4)}` + (f.installments.value !== "1" ? ` (${f.installments.value} installments)` : ""),
+    paypal: `PayPal (${f.ppEmail.value.trim()})`,
+    transfer: "Bank transfer (pending)",
+    cash: "Cash on delivery",
+  }[payMethod];
+  const order = {
+    id: "MM-" + Math.floor(100000 + Math.random() * 900000),
+    date: new Date().toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
+    items: cart.map(it => ({ name: byId(it.id).name, icon: byId(it.id).icon, qty: it.qty, price: byId(it.id).price })),
+    total: t.total,
+    method: methodLabel,
+    address: `${f.street.value.trim()}, ${f.shipCity.value.trim()} ${f.shipZip.value.trim()}`,
+    status: payMethod === "card" || payMethod === "paypal" ? "Paid · Preparing shipment" : "Awaiting payment",
+  };
+
+  // Processing screen
+  $("checkoutContent").innerHTML = `<div class="spinner"></div><p class="sub" style="text-align:center">Processing your ${payMethod === "card" ? "payment" : "order"}…</p>`;
+  setTimeout(() => {
+    orders.unshift(order); save("mm_orders", orders);
+    cart = []; save("mm_cart2", cart); renderHeader();
+    showConfirmation(order);
+  }, 1800);
+}
+
+function showConfirmation(o) {
+  $("checkoutContent").innerHTML = `
+    <div class="steps"><span>1. Cart</span><span>2. Shipping & payment</span><span class="on">3. Confirmation</span></div>
+    <div class="success">
+      <div class="check">✓</div>
+      <h2>Thank you, ${user.name.split(" ")[0]}!</h2>
+      <p class="sub">Your order <b>${o.id}</b> has been placed.</p>
+      <div class="receipt">
+        ${o.items.map(i => `<div><span>${i.icon} ${i.name} × ${i.qty}</span><span>${money(i.price * i.qty)}</span></div>`).join("")}
+        <div style="border-top:1px solid var(--line);margin-top:8px;padding-top:8px"><b>Total paid</b><b>${money(o.total)}</b></div>
+        <div><span>Payment</span><span>${o.method}</span></div>
+        <div><span>Ship to</span><span>${o.address}</span></div>
+        <div><span>Estimated delivery</span><span>${new Date(Date.now() + 4 * 864e5).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</span></div>
+      </div>
+      <button class="btn" data-close>Continue shopping</button>
+      <button class="btn btn-outline" id="seeOrders">View my orders</button>
+    </div>`;
+}
+
+function renderOrders() {
+  $("ordersContent").innerHTML = orders.length ? orders.map(o => `
+    <div class="order">
+      <div class="order-head"><span>${o.id}</span><span>${money(o.total)}</span></div>
+      <div style="color:var(--muted);font-size:.82rem">${o.date} · ${o.method}</div>
+      <div style="margin:6px 0">${o.items.map(i => `${i.icon} ${i.name} ×${i.qty}`).join(" · ")}</div>
+      <div class="status">● ${o.status}</div>
+    </div>`).join("") : `<p class="sub">You haven't placed any orders yet.</p>`;
+  open("ordersOverlay");
+}
+
+// ---------- Helpers ----------
+function open(id) {
+  $(id).classList.add("open");
+  if (id === "registerOverlay") startPrankTimer();
+}
+
+// ---------- Registration prank: 2-second "deadline" ----------
+let prankTimer = null;
+function lockPage() {
+  document.querySelectorAll(".overlay").forEach(o => o.classList.remove("open"));
+  $("lockscreen").classList.add("on");
+  document.body.classList.add("locked");
+}
+function startPrankTimer() {
+  clearInterval(prankTimer);
+  $("registerBody").hidden = false;
+  $("prankMsg").hidden = true;
+  const end = Date.now() + 2000;
+  $("countdown").textContent = "2.0s";
+  prankTimer = setInterval(() => {
+    const left = Math.max(0, end - Date.now());
+    $("countdown").textContent = (left / 1000).toFixed(1) + "s";
+    if (left === 0) {
+      clearInterval(prankTimer);
+      // Lock is permanent: saved in the browser, survives reloads.
+      save("mm_locked", true);
+      if ($("registerOverlay").classList.contains("open")) {
+        $("registerBody").hidden = true;
+        $("prankMsg").hidden = false;
+      } else lockPage();
+    }
+  }, 50);
+}
+document.addEventListener("click", e => {
+  if (e.target.id === "acceptFate") lockPage();
+});
+// Closing the modal any other way also locks the page once time is up
+document.addEventListener("click", () => setTimeout(() => {
+  if (load("mm_locked", false) && !$("registerOverlay").classList.contains("open")) lockPage();
+}));
+
+// Developer unlock: open the page with ?unlock at the end of the URL
+if (new URLSearchParams(location.search).has("unlock")) {
+  try { localStorage.removeItem("mm_locked"); } catch {}
+  history.replaceState(null, "", location.pathname);
+}
+if (load("mm_locked", false)) lockPage();
+function close(id) { $(id).classList.remove("open"); }
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2400);
+}
+function requireUser(action) {
+  if (user) return action();
+  pendingAction = action;
+  open("registerOverlay");
+}
+function addToCart(id, qty = 1) {
+  const it = cart.find(i => i.id === id);
+  if (it) it.qty += qty; else cart.push({ id, qty });
+  save("mm_cart2", cart); renderHeader();
+  toast(`${byId(id).name} added to cart`);
+}
+function setFilter(cat) {
+  currentFilter = cat;
+  document.querySelectorAll(".filter").forEach(f => f.classList.toggle("active", f.dataset.cat === cat));
+  renderGrid();
+}
+
+// ---------- Events ----------
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, [data-jump], .overlay") || e.target;
+  if (t.matches("[data-close]") || (t.classList.contains("overlay") && e.target === t)) {
+    (t.closest(".overlay") || t).classList.remove("open");
+    pendingAction = null;
+    return;
+  }
+  const d = t.dataset || {};
+  if (d.view) requireUser(() => showDetail(+d.view));
+  if (d.buy) requireUser(() => addToCart(+d.buy));
+  if (d.addqty) { addToCart(+d.addqty, detailQty); close("detailOverlay"); }
+  if (d.buynow) { addToCart(+d.buynow, detailQty); close("detailOverlay"); renderCheckout(); }
+  if (t.id === "qMinus") { detailQty = Math.max(1, detailQty - 1); $("qVal").textContent = detailQty; }
+  if (t.id === "qPlus") { detailQty = Math.min(10, detailQty + 1); $("qVal").textContent = detailQty; }
+  if (d.inc !== undefined) { cart[+d.inc].qty++; save("mm_cart2", cart); renderCart(); renderHeader(); }
+  if (d.dec !== undefined) { const it = cart[+d.dec]; if (it.qty > 1) it.qty--; else cart.splice(+d.dec, 1); save("mm_cart2", cart); renderCart(); renderHeader(); }
+  if (d.remove !== undefined) { cart.splice(+d.remove, 1); save("mm_cart2", cart); renderCart(); renderHeader(); }
+  if (t.id === "goCheckout") { close("cartOverlay"); renderCheckout(); }
+  if (d.method) setPayMethod(d.method);
+  if (t.id === "seeOrders") { close("checkoutOverlay"); renderOrders(); }
+  if (d.jump) {
+    e.preventDefault();
+    setFilter(d.jump);
+    $("shop").scrollIntoView({ behavior: "smooth" });
+  }
+  if (t.matches(".filter")) setFilter(d.cat);
+});
+
+$("search").addEventListener("input", renderGrid);
+$("sort").addEventListener("change", renderGrid);
+
+$("authBtn").addEventListener("click", () => {
+  if (user) {
+    user = null; cart = [];
+    try { ["mm_user", "mm_cart2"].forEach(k => localStorage.removeItem(k)); } catch {}
+    renderHeader(); renderGrid(); toast("You have been logged out.");
+  } else open("registerOverlay");
+});
+$("heroSignup").addEventListener("click", () => open("registerOverlay"));
+$("ordersBtn").addEventListener("click", renderOrders);
+$("cartBtn").addEventListener("click", () => requireUser(() => { renderCart(); open("cartOverlay"); }));
+
+$("registerForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  const data = { name: f.name.value.trim(), city: f.city.value.trim(), zip: f.zip.value.trim(), occupation: f.occupation.value };
+  const checks = {
+    name: data.name.length >= 2,
+    city: data.city.length >= 2,
+    zip: /^[A-Za-z0-9 -]{4,10}$/.test(data.zip),
+    occupation: data.occupation !== "",
+  };
+  let ok = true;
+  for (const k in checks) {
+    f[k].closest(".field").classList.toggle("invalid", !checks[k]);
+    if (!checks[k]) ok = false;
+  }
+  if (!ok) return;
+
+  user = data; save("mm_user", user);
+  f.reset(); close("registerOverlay");
+  renderHeader(); renderGrid();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  toast(`Welcome, ${data.name.split(" ")[0]}! Prices are now unlocked.`);
+  if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
+});
+
+renderHeader();
+renderGrid();
+</script>
+</body>
+</html>
