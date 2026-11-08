@@ -6,6 +6,8 @@
 <title>Maison Market</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
 <style>
   :root {
     --bg: #faf7f2;
@@ -114,6 +116,11 @@
   .field.invalid .error { display: block; }
   .field.invalid input, .field.invalid select, .field.invalid textarea { border-color: #b3261e; }
   .conf-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+  .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 18px; }
+  .auth-tab { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px; font-weight: 600; font-size: .9rem; color: var(--muted); }
+  .auth-tab.active { border: 2px solid var(--accent); background: #fdf3ee; color: var(--ink); }
+  .config-banner { background: #fff6e0; border-bottom: 1px solid #f0dca8; color: #7a5b12; text-align: center; padding: 10px 16px; font-size: .88rem; }
+  .config-banner code { background: #f3e6c4; padding: 1px 6px; border-radius: 4px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .full { width: 100%; padding: 13px; margin-top: 6px; }
 
@@ -296,24 +303,41 @@
 <div class="overlay" id="registerOverlay">
   <div class="modal">
     <button class="close" data-close>&times;</button>
-    <h2>Create your account</h2>
+    <h2 id="authTitle">Create your account</h2>
     <div id="registerBody">
-    <p class="sub">Register to unlock prices, product details and checkout.</p>
+    <p class="sub" id="authSub">Register to unlock prices, product details and checkout.</p>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-auth="register">Create account</button>
+      <button type="button" class="auth-tab" data-auth="login">Log in</button>
+    </div>
+
     <form id="registerForm" novalidate>
+      <div class="field">
+        <label for="regEmail">Email</label>
+        <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        <div class="error">Please enter a valid email.</div>
+      </div>
+      <div class="field">
+        <label for="regPassword">Password</label>
+        <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+        <div class="error">Password must be at least 6 characters.</div>
+      </div>
       <div class="field">
         <label for="name">Full name</label>
         <input id="name" name="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
         <div class="error">Please enter your name.</div>
       </div>
-      <div class="field">
-        <label for="city">City</label>
-        <input id="city" name="city" type="text" placeholder="e.g. Mexico City" autocomplete="address-level2">
-        <div class="error">Please enter your city.</div>
-      </div>
-      <div class="field">
-        <label for="zip">Postal code</label>
-        <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
-        <div class="error">Enter a valid postal code (4–10 characters).</div>
+      <div class="row">
+        <div class="field">
+          <label for="city">City</label>
+          <input id="city" name="city" type="text" placeholder="e.g. Mexico City" autocomplete="address-level2">
+          <div class="error">Please enter your city.</div>
+        </div>
+        <div class="field">
+          <label for="zip">Postal code</label>
+          <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
+          <div class="error">Enter a valid postal code (4–10 characters).</div>
+        </div>
       </div>
       <div class="field">
         <label for="occupation">Occupation</label>
@@ -325,7 +349,21 @@
         </select>
         <div class="error">Please select your occupation.</div>
       </div>
-      <button class="btn full" type="submit">Register</button>
+      <button class="btn full" type="submit">Create account</button>
+    </form>
+
+    <form id="loginForm" novalidate hidden>
+      <div class="field">
+        <label for="logEmail">Email</label>
+        <input id="logEmail" name="logEmail" type="email" placeholder="you@example.com" autocomplete="email">
+        <div class="error">Please enter a valid email.</div>
+      </div>
+      <div class="field">
+        <label for="logPassword">Password</label>
+        <input id="logPassword" name="logPassword" type="password" placeholder="Your password" autocomplete="current-password">
+        <div class="error">Please enter your password.</div>
+      </div>
+      <button class="btn full" type="submit">Log in</button>
     </form>
     </div>
   </div>
@@ -370,118 +408,74 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ---------- Catalog: 20 products per category ----------
-// [name, price, icon, background, description, sale?]
-const catalog = {
-  clothing: [
-    ["Linen Summer Shirt", 49, "👕", "#f1dccf", "Breathable 100% linen shirt with a relaxed fit."],
-    ["Wool Overcoat", 189, "🧥", "#e6ddd2", "Classic double-breasted coat in a soft wool blend.", true],
-    ["Floral Midi Dress", 79, "👗", "#f3d9e0", "Flowy midi dress with a hand-drawn floral print."],
-    ["Slim Fit Jeans", 65, "👖", "#d6dfeb", "Stretch denim jeans in a dark indigo wash."],
-    ["Cashmere Scarf", 55, "🧣", "#efd9d0", "Ultra-soft cashmere scarf, 180 cm long."],
-    ["Oxford Dress Shirt", 59, "👔", "#dde6ef", "Crisp cotton oxford shirt with button-down collar."],
-    ["Chino Shorts", 39, "🩳", "#e9e1cc", "Lightweight cotton shorts with a 7-inch inseam.", true],
-    ["Silk Blouse", 89, "👚", "#f4e1e8", "Elegant silk blouse with mother-of-pearl buttons."],
-    ["Lab-Style Trench", 149, "🥼", "#ecebe6", "Water-resistant trench coat with a belted waist."],
-    ["Leather Gloves", 45, "🧤", "#e2d3c3", "Lambskin gloves with a warm fleece lining."],
-    ["Running Tank Top", 29, "🎽", "#d8ebe2", "Quick-dry tank top for training days."],
-    ["One-Piece Swimsuit", 69, "🩱", "#d5e8ef", "UV-protective swimsuit with a scoop back."],
-    ["Baseball Cap", 25, "🧢", "#dfe3ea", "Organic cotton cap with adjustable strap."],
-    ["Kimono Robe", 99, "👘", "#f2dfd3", "Printed cotton kimono robe, one size."],
-    ["Hooded Sweatshirt", 59, "🧥", "#e3e0dc", "Heavyweight fleece hoodie with kangaroo pocket.", true],
-    ["Pleated Skirt", 54, "👗", "#ead9e6", "Midi pleated skirt in a satin finish."],
-    ["Denim Jacket", 85, "🧥", "#d4dde9", "Classic trucker jacket in rigid denim."],
-    ["Knit Sweater", 75, "👚", "#efe4d4", "Chunky merino wool sweater, crew neck."],
-    ["Wide-Leg Trousers", 69, "👖", "#e5e1d8", "Tailored high-waist trousers with pleats."],
-    ["Graphic Tee", 22, "👕", "#f0e6cf", "Soft cotton tee with an original print."],
-  ],
-  objects: [
-    ["Ceramic Vase", 39, "🏺", "#dde5d8", "Handmade stoneware vase with a matte glaze."],
-    ["Soy Wax Candle Set", 29, "🕯️", "#f2ead8", "Three scented candles: cedar, vanilla and fig.", true],
-    ["Brass Desk Clock", 65, "🕰️", "#efe3c4", "Vintage-inspired clock with silent quartz movement."],
-    ["Potted Monstera", 49, "🪴", "#d7e7d4", "Live indoor plant in a terracotta pot."],
-    ["Coffee Table Book", 35, "📚", "#e7dfd4", "Hardcover photo book on modern architecture."],
-    ["Fountain Pen", 79, "🖋️", "#dcdde6", "Lacquered fountain pen with a steel nib."],
-    ["Round Wall Mirror", 120, "🪞", "#e9e4dc", "60 cm mirror with a thin brass frame."],
-    ["Velvet Cushion", 32, "🛋️", "#e8d6d6", "Plush velvet cushion with feather insert.", true],
-    ["Table Lamp", 89, "💡", "#f3ebd2", "Ceramic base lamp with a linen shade."],
-    ["Teddy Bear", 28, "🧸", "#efdfcc", "Hand-stitched plush bear, 30 cm tall."],
-    ["Gift Box Set", 45, "🎁", "#f1d9d9", "Curated box with tea, chocolate and a candle."],
-    ["Oil Diffuser Lamp", 38, "🪔", "#f2e2cf", "Ceramic aroma diffuser with tea-light holder."],
-    ["Woven Basket", 34, "🧺", "#ede3cd", "Hand-woven seagrass storage basket."],
-    ["Cast Iron Teapot", 59, "🫖", "#dcdcd8", "Japanese-style teapot with infuser."],
-    ["Stoneware Mug Set", 36, "☕", "#e6ddd3", "Set of four speckled mugs, 350 ml."],
-    ["Wind Chime", 24, "🎐", "#dde9ee", "Glass wind chime with a soft, clear tone."],
-    ["Oak Side Chair", 179, "🪑", "#e7dccb", "Solid oak chair with a woven seat."],
-    ["Brass Telescope", 210, "🔭", "#e9e0c9", "Decorative working telescope with tripod.", true],
-    ["Retro Radio", 95, "📻", "#ead8c8", "Bluetooth speaker in a vintage radio case."],
-    ["Wooden Board Game", 42, "🎲", "#e6dbc9", "Handcrafted walnut board game set."],
-  ],
-  shoes: [
-    ["Everyday Sneakers", 95, "👟", "#d9dfe8", "Lightweight sneakers with a cushioned sole."],
-    ["Leather Ankle Boots", 159, "🥾", "#e4d6c8", "Full-grain leather boots with rubber sole."],
-    ["Classic Heels", 120, "👠", "#f0d4d4", "Elegant 7 cm suede heels with padded insole."],
-    ["Oxford Brogues", 140, "👞", "#e3d5c6", "Hand-burnished leather brogues."],
-    ["Strappy Sandals", 65, "👡", "#f2e1d1", "Leather sandals with an adjustable ankle strap.", true],
-    ["Beach Flip-Flops", 19, "🩴", "#d8e9ec", "Comfortable rubber flip-flops."],
-    ["Ballet Flats", 75, "🥿", "#ecdde3", "Soft leather flats with a bow detail."],
-    ["Dance Pointe Shoes", 85, "🩰", "#f4dfe4", "Satin pointe shoes for ballet practice."],
-    ["Ice Skates", 130, "⛸️", "#dfe8f0", "Figure skates with stainless steel blades."],
-    ["Trail Running Shoes", 115, "👟", "#dbe7da", "Grippy outsole built for off-road runs."],
-    ["Hiking Boots", 175, "🥾", "#e0d8c9", "Waterproof boots with ankle support.", true],
-    ["Loafers", 110, "👞", "#e6d9cc", "Slip-on penny loafers in polished leather."],
-    ["Platform Sandals", 72, "👡", "#f1e3d6", "Cork platform sandals with a comfy footbed."],
-    ["High-Top Sneakers", 89, "👟", "#e1e1ea", "Canvas high-tops with a vulcanized sole."],
-    ["Stiletto Pumps", 135, "👠", "#efd6dc", "Patent leather pumps with a 10 cm heel."],
-    ["House Slippers", 29, "🥿", "#ece6dc", "Wool-lined slippers with memory foam."],
-    ["Chelsea Boots", 165, "🥾", "#ddd4c9", "Suede Chelsea boots with elastic sides."],
-    ["Slide Sandals", 35, "🩴", "#d9e6ea", "Minimal slides with a molded footbed.", true],
-    ["Derby Shoes", 125, "👞", "#e4d8ca", "Smart derby shoes with leather sole."],
-    ["Kids' Sneakers", 45, "👟", "#e8e3d2", "Velcro sneakers with light-up soles."],
-  ],
-  paintings: [
-    ["Sunset Over the Bay", 340, "🌅", "#f6dcc4", "Acrylic on canvas, 60×80 cm. Signed."],
-    ["Abstract Blue No. 7", 280, "🎨", "#d6e2f0", "Bold abstract oil painting, 50×70 cm."],
-    ["Mountain Landscape", 410, "🏞️", "#d8e6dc", "Watercolor in a handmade oak frame, 40×50 cm."],
-    ["Morning Hills", 260, "🌄", "#f2e0cf", "Oil on linen, soft dawn palette, 45×60 cm."],
-    ["The Great Wave Study", 390, "🌊", "#d4e4ee", "Expressive seascape in acrylic, 70×90 cm.", true],
-    ["Sunflowers in a Jar", 220, "🌻", "#f3e8c6", "Still life in oil pastel, 40×50 cm."],
-    ["Night Sky Galaxy", 450, "🌌", "#d6d6ea", "Mixed media with metallic paint, 80×100 cm."],
-    ["City Skyline", 310, "🏙️", "#dfe2e8", "Urban scene in gouache, 50×70 cm."],
-    ["Cherry Blossoms", 275, "🌸", "#f5dde6", "Ink and watercolor on rice paper."],
-    ["Autumn Leaves", 195, "🍂", "#f1dcc6", "Textured palette-knife painting, 40×40 cm.", true],
-    ["Midnight Streets", 330, "🌃", "#d9dbe6", "Moody nocturne in oil, 60×80 cm."],
-    ["Snowy Peak", 360, "🗻", "#e2e9ef", "Minimalist landscape in acrylic, 50×70 cm."],
-    ["Tulip Field", 240, "🌷", "#f3dee0", "Impressionist oil painting, 45×60 cm."],
-    ["Wild Horse", 420, "🐎", "#ece0d1", "Dynamic charcoal and oil, 70×90 cm."],
-    ["Crescent Moon", 180, "🌙", "#dcdbe9", "Small abstract piece, 30×40 cm."],
-    ["Tropical Island", 300, "🏝️", "#d5ece6", "Vibrant acrylic seascape, 60×80 cm."],
-    ["Pine Forest", 255, "🌲", "#d7e5d6", "Oil on board with deep greens, 50×60 cm."],
-    ["Butterfly Garden", 230, "🦋", "#e5e0f0", "Colorful mixed media, 40×50 cm.", true],
-    ["Still Life with Apples", 210, "🍎", "#f2d9d3", "Classic oil still life, 40×50 cm."],
-    ["Portrait in Gold", 520, "🖼️", "#efe3c4", "Gilded oil portrait in an ornate frame."],
-  ],
-};
+// ---------- Catalog ----------
+// Products and prices are NOT stored in this page anymore. They live in the
+// Supabase "products" table and are fetched only AFTER the user logs in, so a
+// logged-out visitor sees no prices in the page source (view-source / inspect).
 const catLabel = { clothing: "Clothing", objects: "Objects", shoes: "Shoes", paintings: "Paintings" };
-const products = [];
-Object.entries(catalog).forEach(([cat, items]) => items.forEach(([name, base, icon, bg, desc, sale], i) => {
-  products.push({ id: products.length + 1, cat, name, base, price: sale ? +(base * 0.9).toFixed(2) : base, icon, bg, desc, sale: !!sale, order: i });
-}));
+let products = [];
 const byId = id => products.find(p => p.id === id);
 const money = n => "$" + n.toFixed(2);
 
 // ---------- State ----------
 function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-let user = load("mm_user", null);
-let cart = load("mm_cart2", []);      // [{id, qty}]
-let orders = load("mm_orders", []);
+let user = null;              // profile {name, city, zip, occupation} (from Supabase)
+let authUserId = null;        // Supabase auth user id
+let cart = load("mm_cart2", []);  // [{id, qty}] — cart stays in the browser, no prices in it
+let orders = [];              // fetched from Supabase
 let pendingAction = null;
 let currentFilter = "all";
 let detailQty = 1;
 let payMethod = "card";
 
 const $ = id => document.getElementById(id);
+
+// ---------- Supabase (backend: login + prices + orders) ----------
+const configured = typeof SUPABASE_URL === "string" && !/PASTE_YOUR/.test(SUPABASE_URL);
+const sb = configured ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+function toProduct(r) {
+  return { id: r.id, cat: r.category, name: r.name, base: +r.base_price,
+    price: r.on_sale ? +(r.base_price * 0.9).toFixed(2) : +r.base_price,
+    icon: r.icon, bg: r.bg, desc: r.description, sale: !!r.on_sale, order: r.sort };
+}
+async function loadProducts() {
+  if (!sb) return;
+  const { data, error } = await sb.from("products").select("*").order("sort");
+  if (error) { console.warn("products:", error.message); return; }
+  products = data.map(toProduct);
+}
+function orderFromRow(o) {
+  return { id: o.code, dbId: o.id,
+    date: new Date(o.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
+    items: o.items, total: +o.total, method: o.method, address: o.address, status: o.status };
+}
+async function loadProfileAndOrders(uid) {
+  let [{ data: prof }, { data: ords }] = await Promise.all([
+    sb.from("profiles").select("*").eq("id", uid).maybeSingle(),
+    sb.from("orders").select("*").order("created_at", { ascending: false }),
+  ]);
+  // Make sure every logged-in user has a profile row (e.g. users created
+  // by hand in the Supabase dashboard have none yet).
+  if (!prof) {
+    await sb.from("profiles").upsert({ id: uid, name: "Member" });
+    prof = { name: "Member", city: "", zip: "", occupation: "" };
+  }
+  user = { name: prof.name || "Member", city: prof.city || "", zip: prof.zip || "", occupation: prof.occupation || "" };
+  orders = (ords || []).map(orderFromRow);
+}
+async function refreshSession() {
+  if (!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    authUserId = session.user.id;
+    await loadProducts();
+    await loadProfileAndOrders(authUserId);
+  } else {
+    authUserId = null; user = null; products = []; orders = [];
+  }
+}
 
 // ---------- Rendering ----------
 function renderGrid() {
@@ -777,13 +771,21 @@ function submitPayment(e) {
     status: payMethod === "card" || payMethod === "paypal" ? "Paid · Preparing shipment" : "Awaiting payment",
   };
 
-  // Processing screen
+  // Processing screen, then store the order on the server (Supabase).
   $("checkoutContent").innerHTML = `<div class="spinner"></div><p class="sub" style="text-align:center">Processing your ${payMethod === "card" ? "payment" : "order"}…</p>`;
-  setTimeout(() => {
-    orders.unshift(order); save("mm_orders", orders);
+  (async () => {
+    if (sb && authUserId) {
+      const { data, error } = await sb.from("orders").insert({
+        user_id: authUserId, code: order.id, items: order.items, total: order.total,
+        method: order.method, address: order.address, status: order.status,
+      }).select().single();
+      if (error) { toast(error.message); }
+      else order.dbId = data.id;
+    }
+    orders.unshift(order);
     cart = []; save("mm_cart2", cart); renderHeader();
     showConfirmation(order);
-  }, 1800);
+  })();
 }
 
 function showConfirmation(o) {
@@ -836,7 +838,10 @@ function renderRequestForm(type, oid) {
     const field = ev.target.querySelector(".field");
     const reason = ev.target.reason.value.trim();
     if (reason.length < 3) { field.classList.add("invalid"); ev.target.reason.focus(); return; }
-    if (o) { o.status = isCancel ? "Cancelled by customer" : "Refund requested"; o.reason = reason; save("mm_orders", orders); }
+    if (o) {
+      o.status = isCancel ? "Cancelled by customer" : "Refund requested"; o.reason = reason;
+      if (sb && o.dbId) sb.from("orders").update({ status: o.status, reason }).eq("id", o.dbId);
+    }
     $("checkoutContent").innerHTML = `
       <div class="success">
         <div class="check">✓</div>
@@ -881,7 +886,7 @@ function toast(msg) {
 function requireUser(action) {
   if (user) return action();
   pendingAction = action;
-  open("registerOverlay");
+  openAuth("register");
 }
 function addToCart(id, qty = 1) {
   const it = cart.find(i => i.id === id);
@@ -928,44 +933,98 @@ document.addEventListener("click", e => {
 $("search").addEventListener("input", renderGrid);
 $("sort").addEventListener("change", renderGrid);
 
-$("authBtn").addEventListener("click", () => {
-  if (user) {
-    user = null; cart = [];
-    try { ["mm_user", "mm_cart2"].forEach(k => localStorage.removeItem(k)); } catch {}
-    renderHeader(); renderGrid(); toast("You have been logged out.");
-  } else open("registerOverlay");
-});
-$("heroSignup").addEventListener("click", () => open("registerOverlay"));
-$("ordersBtn").addEventListener("click", renderOrders);
-$("cartBtn").addEventListener("click", () => requireUser(() => { renderCart(); open("cartOverlay"); }));
+// ---------- Auth (Supabase) ----------
+function setAuthMode(mode) {
+  const reg = mode !== "login";
+  document.querySelectorAll(".auth-tab").forEach(b => b.classList.toggle("active", (b.dataset.auth === "login") === !reg));
+  $("registerForm").hidden = !reg;
+  $("loginForm").hidden = reg;
+  $("authTitle").textContent = reg ? "Create your account" : "Welcome back";
+  $("authSub").textContent = reg ? "Register to unlock prices, product details and checkout." : "Log in to see prices and your orders.";
+}
+function openAuth(mode) { setAuthMode(mode || "register"); open("registerOverlay"); }
 
-$("registerForm").addEventListener("submit", e => {
-  e.preventDefault();
-  const f = e.target;
-  const data = { name: f.name.value.trim(), city: f.city.value.trim(), zip: f.zip.value.trim(), occupation: f.occupation.value };
-  const checks = {
-    name: data.name.length >= 2,
-    city: data.city.length >= 2,
-    zip: /^[A-Za-z0-9 -]{4,10}$/.test(data.zip),
-    occupation: data.occupation !== "",
-  };
-  let ok = true;
-  for (const k in checks) {
-    f[k].closest(".field").classList.toggle("invalid", !checks[k]);
-    if (!checks[k]) ok = false;
-  }
-  if (!ok) return;
-
-  user = data; save("mm_user", user);
-  f.reset(); close("registerOverlay");
+async function afterAuth() {
+  await loadProducts();
+  await loadProfileAndOrders(authUserId);
+  close("registerOverlay");
   renderHeader(); renderGrid();
   window.scrollTo({ top: 0, behavior: "smooth" });
-  toast(`Welcome, ${data.name.split(" ")[0]}! Prices are now unlocked.`);
+  toast(`Welcome, ${user.name.split(" ")[0]}! Prices are now unlocked.`);
   if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
+}
+
+$("authBtn").addEventListener("click", async () => {
+  if (user) {
+    if (sb) await sb.auth.signOut();
+    user = null; authUserId = null; products = []; orders = []; cart = [];
+    try { localStorage.removeItem("mm_cart2"); } catch {}
+    renderHeader(); renderGrid(); toast("You have been logged out.");
+  } else openAuth("register");
+});
+$("heroSignup").addEventListener("click", () => openAuth("register"));
+$("ordersBtn").addEventListener("click", renderOrders);
+$("cartBtn").addEventListener("click", () => requireUser(() => { renderCart(); open("cartOverlay"); }));
+document.addEventListener("click", e => { if (e.target.matches(".auth-tab")) setAuthMode(e.target.dataset.auth); });
+
+$("registerForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
+  const f = e.target;
+  const profile = { name: f.name.value.trim(), city: f.city.value.trim(), zip: f.zip.value.trim(), occupation: f.occupation.value };
+  const checks = {
+    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.regEmail.value.trim()),
+    regPassword: f.regPassword.value.length >= 6,
+    name: profile.name.length >= 2,
+    city: profile.city.length >= 2,
+    zip: /^[A-Za-z0-9 -]{4,10}$/.test(profile.zip),
+    occupation: profile.occupation !== "",
+  };
+  let ok = true;
+  for (const k in checks) { f[k].closest(".field").classList.toggle("invalid", !checks[k]); if (!checks[k]) ok = false; }
+  if (!ok) { f.querySelector(".invalid input, .invalid select")?.focus(); return; }
+
+  const btn = f.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Creating…";
+  const { data, error } = await sb.auth.signUp({ email: f.regEmail.value.trim(), password: f.regPassword.value });
+  btn.disabled = false; btn.textContent = "Create account";
+  if (error) { toast(error.message); return; }
+  if (!data.session) { toast("Almost there! Check your email to confirm your account, then log in."); setAuthMode("login"); return; }
+  authUserId = data.user.id;
+  await sb.from("profiles").upsert({ id: authUserId, ...profile });
+  f.reset();
+  await afterAuth();
 });
 
-renderHeader();
-renderGrid();
+$("loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
+  const f = e.target;
+  const checks = { logEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 };
+  let ok = true;
+  for (const k in checks) { f[k].closest(".field").classList.toggle("invalid", !checks[k]); if (!checks[k]) ok = false; }
+  if (!ok) return;
+
+  const btn = f.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Logging in…";
+  const { data, error } = await sb.auth.signInWithPassword({ email: f.logEmail.value.trim(), password: f.logPassword.value });
+  btn.disabled = false; btn.textContent = "Log in";
+  if (error) { toast(error.message); return; }
+  authUserId = data.user.id;
+  f.reset();
+  await afterAuth();
+});
+
+// ---------- Startup ----------
+(async function init() {
+  if (!sb) {
+    const bar = document.createElement("div");
+    bar.className = "config-banner";
+    bar.innerHTML = "⚙️ Backend not connected yet. Add your Supabase Project URL and anon key in <code>config.js</code> to load prices and enable login.";
+    document.body.prepend(bar);
+  }
+  await refreshSession();
+  renderHeader();
+  renderGrid();
+})();
 </script>
 </body>
 </html>
