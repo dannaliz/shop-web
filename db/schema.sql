@@ -71,3 +71,21 @@ drop policy if exists "own orders update" on public.orders;
 create policy "own orders read"   on public.orders for select to authenticated using (auth.uid() = user_id);
 create policy "own orders insert" on public.orders for insert to authenticated with check (auth.uid() = user_id);
 create policy "own orders update" on public.orders for update to authenticated using (auth.uid() = user_id);
+
+-- 4) UI TEXT --------------------------------------------------
+-- Interface strings (e.g. the "Are you sure?" dialog) live here on
+-- the server instead of in index.html, so they do NOT appear in the
+-- page source ("view source") for anyone who is not signed in.
+create table if not exists public.ui_text (
+  key text primary key,
+  val text not null
+);
+
+alter table public.ui_text enable row level security;
+
+-- Only LOGGED-IN users can read these strings.
+drop policy if exists "ui_text readable by authenticated" on public.ui_text;
+create policy "ui_text readable by authenticated"
+  on public.ui_text for select
+  to authenticated
+  using (true);
