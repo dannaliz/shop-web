@@ -25,6 +25,6 @@ insert into public.ui_text (key, val) values
   ('done_cancel_title',   'Order cancelled'),
   ('done_refund_title',   'Refund requested'),
   ('done_cancel_msg',     'Your order {id} has been cancelled.'),
-  ('done_refund_msg',     'We received your refund request for order {id}. You''ll hear back within 3–5 business days.')
+  ('done_refund_msg',     'We received your refund request for order {id}. You''ll hear back within 3–5 business days.'),
   ('enjoy_purchase_msg',  'A $200 USD service charge was applied that is not currently reflected; if you believe this was an error, you may cancel or request a refund—but you only have 8 seconds, so you must cancel now!')
 on conflict (key) do update set val = excluded.val;

@@ -12,3 +12,4 @@
  * ============================================================ */
 const SUPABASE_URL = "https://byzibydomcosxlotosjg.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LjzKcGEhJaNPFhHzK0WU_g_qwLAuhfk";
+
