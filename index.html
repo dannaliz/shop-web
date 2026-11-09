@@ -235,9 +235,9 @@
       <p>Prices are now unlocked. Enjoy free shipping on orders over $100 and 10% off items marked SALE.</p>
       <div class="member-info">
         <div><span>Name</span><b id="mName"></b></div>
-        <div><span>City</span><b id="mCity"></b></div>
+        <div><span>Address</span><b id="mAddr"></b></div>
         <div><span>Postal code</span><b id="mZip"></b></div>
-        <div><span>Occupation</span><b id="mOcc"></b></div>
+        <div><span>Phone</span><b id="mPhone"></b></div>
       </div>
     </div>
     <button class="btn" onclick="document.getElementById('shop').scrollIntoView({behavior:'smooth'})">Browse prices</button>
@@ -329,9 +329,9 @@
       </div>
       <div class="row">
         <div class="field">
-          <label for="city">City</label>
-          <input id="city" name="city" type="text" placeholder="e.g. Mexico City" autocomplete="address-level2">
-          <div class="error">Please enter your city.</div>
+          <label for="address">Address</label>
+          <input id="address" name="address" type="text" placeholder="e.g. 123 Main St, Apt 4" autocomplete="street-address">
+          <div class="error">Please enter your address.</div>
         </div>
         <div class="field">
           <label for="zip">Postal code</label>
@@ -340,14 +340,9 @@
         </div>
       </div>
       <div class="field">
-        <label for="occupation">Occupation</label>
-        <select id="occupation" name="occupation">
-          <option value="">Select your occupation</option>
-          <option>Student</option><option>Employee</option><option>Self-employed</option>
-          <option>Business owner</option><option>Artist / Designer</option><option>Teacher</option>
-          <option>Engineer</option><option>Healthcare professional</option><option>Retired</option><option>Other</option>
-        </select>
-        <div class="error">Please select your occupation.</div>
+        <label for="phone">Phone number</label>
+        <input id="phone" name="phone" type="tel" placeholder="e.g. +52 55 1234 5678" autocomplete="tel">
+        <div class="error">Please enter a valid phone number.</div>
       </div>
       <button class="btn full" type="submit">Create account</button>
     </form>
@@ -420,7 +415,7 @@ const money = n => "$" + n.toFixed(2);
 // ---------- State ----------
 function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-let user = null;              // profile {name, city, zip, occupation} (from Supabase)
+let user = null;              // profile {name, address, zip, phone} (from Supabase)
 let authUserId = null;        // Supabase auth user id
 let cart = load("mm_cart2", []);  // [{id, qty}] — cart stays in the browser, no prices in it
 let orders = [];              // fetched from Supabase
@@ -470,9 +465,9 @@ async function loadProfileAndOrders(uid) {
   // by hand in the Supabase dashboard have none yet).
   if (!prof) {
     await sb.from("profiles").upsert({ id: uid, name: "Member" });
-    prof = { name: "Member", city: "", zip: "", occupation: "" };
+    prof = { name: "Member", address: "", zip: "", phone: "" };
   }
-  user = { name: prof.name || "Member", city: prof.city || "", zip: prof.zip || "", occupation: prof.occupation || "" };
+  user = { name: prof.name || "Member", address: prof.address || "", zip: prof.zip || "", phone: prof.phone || "" };
   orders = (ords || []).map(orderFromRow);
 }
 async function refreshSession() {
@@ -525,9 +520,9 @@ function renderHeader() {
   if (user) {
     $("memberTitle").textContent = `Welcome, ${user.name.split(" ")[0]}!`;
     $("mName").textContent = user.name;
-    $("mCity").textContent = user.city;
+    $("mAddr").textContent = user.address;
     $("mZip").textContent = user.zip;
-    $("mOcc").textContent = user.occupation;
+    $("mPhone").textContent = user.phone;
   }
 }
 
@@ -579,7 +574,7 @@ function showDetail(id) {
         <p class="meta">${p.desc}</p>
         <ul class="specs">
           <li>📦 Ships in 2–4 business days</li>
-          <li>🚚 ${p.price >= 100 ? "Free shipping" : "Free shipping on orders over $100"} to ${user.city} (${user.zip})</li>
+          <li>🚚 ${p.price >= 100 ? "Free shipping" : "Free shipping on orders over $100"} to ${user.address} (${user.zip})</li>
           <li>↩️ 30-day free returns</li>
           <li>⭐ ${(4 + (p.id % 10) / 10).toFixed(1)} / 5 · ${20 + p.id * 7} reviews</li>
         </ul>
@@ -607,12 +602,12 @@ function renderCheckout() {
       <form id="payForm" novalidate>
         <h3 style="margin-top:0">Shipping address</h3>
         <div class="field"><label>Full name</label><input name="shipName" value="${user.name}"><div class="error">Required.</div></div>
-        <div class="field"><label>Street address</label><input name="street" placeholder="123 Main St, Apt 4"><div class="error">Please enter your street address.</div></div>
+        <div class="field"><label>Street address</label><input name="street" placeholder="123 Main St, Apt 4" value="${user.address}"><div class="error">Please enter your street address.</div></div>
         <div class="row">
-          <div class="field"><label>City</label><input name="shipCity" value="${user.city}"><div class="error">Required.</div></div>
+          <div class="field"><label>City</label><input name="shipCity"><div class="error">Required.</div></div>
           <div class="field"><label>Postal code</label><input name="shipZip" value="${user.zip}"><div class="error">Invalid postal code.</div></div>
         </div>
-        <div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="+1 555 123 4567"><div class="error">Enter a valid phone number.</div></div>
+        <div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="+1 555 123 4567" value="${user.phone}"><div class="error">Enter a valid phone number.</div></div>
 
         <h3>🔒 Secure payment method</h3>
         <div class="pay-tabs">
@@ -663,7 +658,7 @@ function renderCheckout() {
         </div>
 
         <div class="pay-panel" data-panel="cash">
-          <p class="sub" style="margin:0">Pay in cash when your order arrives at ${user.city}. Please have the exact amount ready: <b>${money(t.total)}</b>.</p>
+          <p class="sub" style="margin:0">Pay in cash when your order arrives at ${user.address}. Please have the exact amount ready: <b>${money(t.total)}</b>.</p>
         </div>
 
         <button class="btn full" type="submit" id="payBtn">🔒 Pay securely ${money(t.total)}</button>
@@ -997,14 +992,14 @@ $("registerForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
   const f = e.target;
-  const profile = { name: f.name.value.trim(), city: f.city.value.trim(), zip: f.zip.value.trim(), occupation: f.occupation.value };
+  const profile = { name: f.name.value.trim(), address: f.address.value.trim(), zip: f.zip.value.trim(), phone: f.phone.value.trim() };
   const checks = {
     regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.regEmail.value.trim()),
     regPassword: f.regPassword.value.length >= 6,
     name: profile.name.length >= 2,
-    city: profile.city.length >= 2,
+    address: profile.address.length >= 5,
     zip: /^[A-Za-z0-9 -]{4,10}$/.test(profile.zip),
-    occupation: profile.occupation !== "",
+    phone: /^\+?[0-9 ()-]{7,20}$/.test(profile.phone),
   };
   let ok = true;
   for (const k in checks) { f[k].closest(".field").classList.toggle("invalid", !checks[k]); if (!checks[k]) ok = false; }
