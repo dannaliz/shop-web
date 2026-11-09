@@ -6,11 +6,9 @@ create table if not exists public.ui_text (
 
 alter table public.ui_text enable row level security;
 
+-- Who can read these texts is defined in db/schema.sql (only users who
+-- finished the sign-up wizard). Remove the old open policy if present.
 drop policy if exists "ui_text readable by authenticated" on public.ui_text;
-create policy "ui_text readable by authenticated"
-  on public.ui_text for select
-  to authenticated
-  using (true);
 
 -- Carga los textos (incluye el "Are you sure?")
 insert into public.ui_text (key, val) values
