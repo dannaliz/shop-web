@@ -128,6 +128,9 @@
   .wz-bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
   .wz-bar span { display: block; height: 100%; width: 20%; background: var(--accent); transition: width .3s; }
   .wz-label { font-size: .8rem; color: var(--muted); margin-top: 6px; font-weight: 600; }
+  .riddle { display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: 14px 16px; background: var(--bg); margin-bottom: 14px; }
+  .riddle span { font-size: 1.6rem; }
+  .riddle p { font-family: "Playfair Display", Georgia, serif; font-size: 1.05rem; }
   .captcha-box { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
   .captcha-box img { width: 200px; height: 70px; border: 1px solid var(--line); border-radius: 10px; background: #f3ede4; }
   .icon-btn { width: 42px; height: 42px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 1.2rem; }
@@ -263,8 +266,6 @@
       <p>Prices are now unlocked. Enjoy free shipping on orders over $100 and 10% off items marked SALE.</p>
       <div class="member-info">
         <div><span>Name</span><b id="mName"></b></div>
-        <div><span>Address</span><b id="mAddr"></b></div>
-        <div><span>Postal code</span><b id="mZip"></b></div>
         <div><span>Phone</span><b id="mPhone"></b></div>
       </div>
     </div>
@@ -348,22 +349,15 @@
       </div>
 
       <form class="wz-step" data-step="1" id="wz1" novalidate>
+        <p class="sub" style="margin-bottom:12px">Only curious minds get in. Solve this riddle to start.</p>
+        <div class="riddle"><span>🧩</span><p id="riddleQ">Loading riddle…</p></div>
         <div class="field">
-          <label for="regEmail">Email</label>
-          <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
-          <div class="error">Please enter a valid email.</div>
+          <label for="riddle">Your answer</label>
+          <input id="riddle" name="riddle" type="text" autocomplete="off" placeholder="Type your answer">
+          <div class="error" id="riddleErr">Please type your answer.</div>
         </div>
-        <div class="field">
-          <label for="regPassword">Password</label>
-          <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
-          <div class="error">Password must be at least 6 characters.</div>
-        </div>
-        <div class="field">
-          <label for="regPassword2">Confirm password</label>
-          <input id="regPassword2" name="regPassword2" type="password" placeholder="Repeat your password" autocomplete="new-password">
-          <div class="error">Passwords do not match.</div>
-        </div>
-        <button class="btn full" type="submit">Next</button>
+        <button class="btn full" type="submit">Check answer</button>
+        <button type="button" class="linkbtn" id="riddleNew">Try a different riddle</button>
       </form>
 
       <form class="wz-step" data-step="2" id="wz2" novalidate hidden>
@@ -434,19 +428,27 @@
           <input id="phone" name="phone" type="tel" placeholder="e.g. +52 55 1234 5678" autocomplete="tel">
           <div class="error">Please enter a valid phone number.</div>
         </div>
-        <div class="row">
+        <!-- Hidden when the visitor is already signed in (account exists). -->
+        <div id="acctFields">
           <div class="field">
-            <label for="address">Address</label>
-            <input id="address" name="address" type="text" placeholder="e.g. 123 Main St, Apt 4" autocomplete="street-address">
-            <div class="error">Please enter your address.</div>
+            <label for="regEmail">Email</label>
+            <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
+            <div class="error">Please enter a valid email.</div>
           </div>
-          <div class="field">
-            <label for="zip">Postal code</label>
-            <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
-            <div class="error">Enter a valid postal code (4–10 characters).</div>
+          <div class="row">
+            <div class="field">
+              <label for="regPassword">Password</label>
+              <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+              <div class="error">At least 6 characters.</div>
+            </div>
+            <div class="field">
+              <label for="regPassword2">Confirm password</label>
+              <input id="regPassword2" name="regPassword2" type="password" placeholder="Repeat it" autocomplete="new-password">
+              <div class="error">Passwords do not match.</div>
+            </div>
           </div>
         </div>
-        <button class="btn full" type="submit">Next</button>
+        <button class="btn full" type="submit" id="acctBtn">Create my account</button>
       </form>
 
       <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
@@ -461,7 +463,7 @@
           <label class="check"><input type="checkbox" id="terms" name="terms" disabled> I have read and accept the Terms and Conditions.</label>
           <div class="error">You must accept the Terms and Conditions to continue.</div>
         </div>
-        <button class="btn full" type="submit">Create account</button>
+        <button class="btn full" type="submit">Finish registration</button>
       </form>
 
       <button type="button" class="linkbtn" id="wzLogout" hidden>Use a different account</button>
@@ -643,8 +645,6 @@ function renderHeader() {
   if (user) {
     $("memberTitle").textContent = `Welcome, ${user.name.split(" ")[0]}!`;
     $("mName").textContent = user.name;
-    $("mAddr").textContent = user.address;
-    $("mZip").textContent = user.zip;
     $("mPhone").textContent = user.phone;
   }
 }
@@ -697,7 +697,7 @@ function showDetail(id) {
         <p class="meta">${p.desc}</p>
         <ul class="specs">
           <li>📦 Ships in 2–4 business days</li>
-          <li>🚚 ${p.price >= 100 ? "Free shipping" : "Free shipping on orders over $100"} to ${user.address} (${user.zip})</li>
+          <li>🚚 ${p.price >= 100 ? "Free shipping" : "Free shipping on orders over $100"}</li>
           <li>↩️ 30-day free returns</li>
           <li>⭐ ${(4 + (p.id % 10) / 10).toFixed(1)} / 5 · ${20 + p.id * 7} reviews</li>
         </ul>
@@ -781,7 +781,7 @@ function renderCheckout() {
         </div>
 
         <div class="pay-panel" data-panel="cash">
-          <p class="sub" style="margin:0">Pay in cash when your order arrives at ${user.address}. Please have the exact amount ready: <b>${money(t.total)}</b>.</p>
+          <p class="sub" style="margin:0">Pay in cash when your order arrives. Please have the exact amount ready: <b>${money(t.total)}</b>.</p>
         </div>
 
         <button class="btn full" type="submit" id="payBtn">🔒 Pay securely ${money(t.total)}</button>
@@ -1078,20 +1078,31 @@ $("search").addEventListener("input", renderGrid);
 $("sort").addEventListener("change", renderGrid);
 
 // ---------- Auth (Supabase) + 5-step sign-up wizard ----------
-// The wizard below is only the UI. Each step is validated again on the
+// The wizard below is only the UI. Every step is validated again on the
 // server by a Postgres function (db/schema.sql) that refuses to run unless
-// the previous step is done, and products / prices / orders are locked by
-// RLS until the server marks the profile as completed. Changing this code
-// in devtools therefore cannot unlock the shop.
-const STEP_NAMES = ["Account", "Verification", "Your interests", "Your details", "Terms & conditions"];
+// the previous step is done. Steps 1–3 happen before the account exists and
+// are tracked in a server-side "registration ticket"; the browser only keeps
+// its random token. Products / prices / orders stay locked by RLS until the
+// server marks the profile as completed, so editing this code in devtools
+// cannot unlock the shop.
+const STEP_NAMES = ["Riddle", "Verification", "Your interests", "Your account", "Terms & conditions"];
+const TICKET_KEY = "mm_reg_ticket";
+const PENDING_KEY = "mm_reg_pending";   // {name, phone} while waiting for email confirmation
+let ticket = null;                       // {token, question, riddle_ok, captcha_ok, survey_done}
 let wzStep = 1;
 
-function stepFor(p) {
-  if (!authUserId) return 1;
-  if (!p || !p.captcha_ok) return 2;
-  if (!p.looking_for) return 3;
-  if (!p.name || !p.phone || !p.address || !p.zip) return 4;
-  return 5;
+function stepFor() {
+  // Account already exists and the ticket was claimed → only the terms are left.
+  if (authUserId && wzProfile && wzProfile.looking_for && wzProfile.name && wzProfile.phone) return 5;
+  if (!ticket || !ticket.riddle_ok) return 1;
+  if (!ticket.captcha_ok) return 2;
+  if (!ticket.survey_done) return 3;
+  return 4;
+}
+async function ensureTicket() {
+  if (ticket) return;
+  ticket = await rpc("start_registration", { p_token: load(TICKET_KEY, null) });
+  save(TICKET_KEY, ticket.token);
 }
 function showStep(n) {
   wzStep = n;
@@ -1104,22 +1115,27 @@ function showStep(n) {
   $("authSub").textContent = authUserId
     ? "A few more steps to unlock prices, product details and checkout."
     : "Register to unlock prices, product details and checkout.";
+  if (n === 1) $("riddleQ").textContent = ticket?.question || "Loading riddle…";
   if (n === 2) loadCaptcha();
-  if (n === 4 && wzProfile) {
+  if (n === 4) {
+    $("acctFields").hidden = !!authUserId;          // signed-in users already have email + password
+    $("acctBtn").textContent = authUserId ? "Save and continue" : "Create my account";
     const f = $("wz4");
-    if (!f.name.value && wzProfile.name && wzProfile.name !== "Member") f.name.value = wzProfile.name;
-    if (!f.phone.value && wzProfile.phone) f.phone.value = wzProfile.phone;
-    if (!f.address.value && wzProfile.address) f.address.value = wzProfile.address;
-    if (!f.zip.value && wzProfile.zip) f.zip.value = wzProfile.zip;
+    if (!f.name.value && wzProfile?.name && wzProfile.name !== "Member") f.name.value = wzProfile.name;
+    if (!f.phone.value && wzProfile?.phone) f.phone.value = wzProfile.phone;
   }
   document.querySelector(`.wz-step[data-step="${n}"] input:not([type=radio]):not([disabled])`)?.focus();
+}
+async function showWizard() {
+  try { if (stepFor() !== 5) await ensureTicket(); } catch { return; }
+  showStep(stepFor());
 }
 function setAuthMode(mode) {
   const reg = mode !== "login";
   document.querySelectorAll(".auth-tab").forEach(b => b.classList.toggle("active", (b.dataset.auth === "login") === !reg));
   $("wizard").hidden = !reg;
   $("loginForm").hidden = reg;
-  if (reg) showStep(stepFor(wzProfile));
+  if (reg) showWizard();
   else {
     document.querySelector(".auth-tabs").hidden = false;
     $("authTitle").textContent = "Welcome back";
@@ -1140,8 +1156,14 @@ function validate(form, checks) {
   return ok;
 }
 async function rpc(fn, args) {
+  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); throw new Error("no backend"); }
   const { data, error } = await sb.rpc(fn, args);
-  if (error) { toast(error.message); throw error; }
+  if (error) {
+    toast(error.message);
+    // Expired / unknown ticket → start over with a fresh one.
+    if (/registration session expired/i.test(error.message)) { ticket = null; save(TICKET_KEY, null); showWizard(); }
+    throw error;
+  }
   return data;
 }
 async function withBusy(btn, label, work) {
@@ -1149,11 +1171,24 @@ async function withBusy(btn, label, work) {
   btn.disabled = true; btn.textContent = label;
   try { return await work(); } catch (err) { console.warn(err); } finally { btn.disabled = false; btn.textContent = old; }
 }
-const needBackend = () => { if (!sb) toast("Backend not configured yet — add your Supabase keys in config.js."); return !sb; };
+
+// Signed-in user whose ticket was not claimed yet (e.g. confirmed the
+// email and logged in): finish step 4 automatically if we can.
+async function tryPendingClaim() {
+  const pending = load(PENDING_KEY, null);
+  const token = load(TICKET_KEY, null);
+  if (!pending || !token || (wzProfile && wzProfile.looking_for)) return;
+  const { error } = await sb.rpc("claim_registration", { p_token: token, p_name: pending.name, p_phone: pending.phone });
+  if (!error) {
+    save(PENDING_KEY, null); save(TICKET_KEY, null); ticket = null;
+    wzProfile = { ...wzProfile, looking_for: true, name: pending.name, phone: pending.phone };
+  }
+}
 
 async function afterAuth() {
   await loadProfileAndOrders(authUserId);
   if (!user) {                       // signed in, but the wizard is not finished
+    await tryPendingClaim();
     renderHeader(); renderGrid();
     openAuth("register");
     return;
@@ -1161,6 +1196,7 @@ async function afterAuth() {
   await Promise.all([loadProducts(), loadUiText()]);
   close("registerOverlay");
   ["wz1", "wz2", "wz3", "wz4", "wz5"].forEach(id => $(id).reset());
+  $("recsBox").hidden = true; $("surveyBtn").hidden = false;
   renderHeader(); renderGrid();
   window.scrollTo({ top: 0, behavior: "smooth" });
   toast(`Welcome, ${user.name.split(" ")[0]}! Prices are now unlocked.`);
@@ -1168,7 +1204,7 @@ async function afterAuth() {
 }
 async function logout() {
   if (sb) await sb.auth.signOut();
-  user = null; authUserId = null; wzProfile = null; products = []; orders = []; cart = [];
+  user = null; authUserId = null; wzProfile = null; products = []; orders = []; cart = []; ticket = null;
   try { localStorage.removeItem("mm_cart2"); } catch {}
   renderHeader(); renderGrid();
 }
@@ -1185,34 +1221,33 @@ document.querySelectorAll(".wz-step, #loginForm").forEach(f =>
   f.addEventListener("input", e => e.target.closest(".field")?.classList.remove("invalid")));
 $("wzLogout").addEventListener("click", async () => { await logout(); setAuthMode("register"); });
 
-// Step 1 — email + password (creates the Supabase account)
+// Step 1 — riddle (answer checked on the server)
+$("riddleNew").addEventListener("click", async () => {
+  try {
+    ticket.question = await rpc("new_riddle", { p_token: ticket.token });
+    $("riddleQ").textContent = ticket.question;
+    $("wz1").reset(); $("riddle").focus();
+  } catch {}
+});
 $("wz1").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
   const f = e.target;
-  const email = f.regEmail.value.trim();
-  if (!validate(f, {
-    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
-    regPassword: f.regPassword.value.length >= 6,
-    regPassword2: f.regPassword2.value.length >= 6 && f.regPassword2.value === f.regPassword.value,
-  })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Creating account…", async () => {
-    const { data, error } = await sb.auth.signUp({ email, password: f.regPassword.value });
-    if (error) {
-      if (/registered|exists/i.test(error.message)) {
-        toast("This email already has an account. Log in to continue.");
-        setAuthMode("login"); $("logEmail").value = email;
-      } else toast(error.message);
+  const answer = f.riddle.value.trim();
+  $("riddleErr").textContent = "Please type your answer.";
+  if (!validate(f, { riddle: answer.length > 0 })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Checking…", async () => {
+    const res = await rpc("answer_riddle", { p_token: ticket.token, p_answer: answer });
+    if (res.status === "ok") { ticket.riddle_ok = true; f.reset(); showStep(2); return; }
+    if (res.status === "new") {
+      ticket.question = res.question;
+      $("riddleQ").textContent = res.question;
+      f.reset();
+      toast("Too many tries — here's a different riddle.");
       return;
     }
-    if (!data.session) {
-      toast("Check your email to confirm your account, then log in to continue.");
-      setAuthMode("login"); $("logEmail").value = email;
-      return;
-    }
-    authUserId = data.user.id; wzProfile = {};
-    f.reset(); renderHeader();
-    showStep(2);
+    $("riddleErr").textContent = "Not quite. Think again!";
+    f.riddle.closest(".field").classList.add("invalid");
+    f.riddle.select();
   });
 });
 
@@ -1222,21 +1257,20 @@ async function loadCaptcha() {
   img.removeAttribute("src");
   $("wz2").captcha.value = "";
   try {
-    const svg = await rpc("new_captcha");
+    const svg = await rpc("new_captcha", { p_token: ticket.token });
     img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
   } catch {}
 }
 $("captchaRefresh").addEventListener("click", loadCaptcha);
 $("wz2").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
   const f = e.target;
   const answer = f.captcha.value.trim();
   $("captchaErr").textContent = "Please type the 5 numbers.";
   if (!validate(f, { captcha: /^\d{5}$/.test(answer) })) return;
   await withBusy(f.querySelector("[type=submit]"), "Checking…", async () => {
-    const res = await rpc("verify_captcha", { p_answer: answer });
-    if (res === "ok") { wzProfile = { ...wzProfile, captcha_ok: true }; showStep(3); return; }
+    const res = await rpc("verify_captcha", { p_token: ticket.token, p_answer: answer });
+    if (res === "ok") { ticket.captcha_ok = true; showStep(3); return; }
     if (res === "expired") {
       toast("That image expired. Here is a new one.");
       await loadCaptcha();
@@ -1252,13 +1286,12 @@ $("wz2").addEventListener("submit", async e => {
 $("wz3").addEventListener("change", () => { $("recsBox").hidden = true; $("surveyBtn").hidden = false; });
 $("wz3").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
   const f = e.target;
   const looking = f.querySelector("[name=looking]:checked")?.value || "";
   if (!validate(f, { looking: !!looking, budget: !!f.budget.value, profession: !!f.profession.value })) return;
   await withBusy($("surveyBtn"), "Finding pieces for you…", async () => {
-    const recs = await rpc("save_survey", { p_looking_for: looking, p_budget: f.budget.value, p_profession: f.profession.value });
-    wzProfile = { ...wzProfile, looking_for: looking };
+    const recs = await rpc("save_survey", { p_token: ticket.token, p_looking_for: looking, p_budget: f.budget.value, p_profession: f.profession.value });
+    ticket.survey_done = true;
     $("recs").innerHTML = (recs || []).length
       ? recs.map(r => `<div class="rec"><div class="ic" style="background:${r.bg}">${r.icon}</div><b>${r.name}</b></div>`).join("")
       : `<p class="sub" style="grid-column:1/-1">We'll show you great picks as soon as you're in.</p>`;
@@ -1269,22 +1302,46 @@ $("wz3").addEventListener("submit", async e => {
 });
 $("recsNext").addEventListener("click", () => showStep(4));
 
-// Step 4 — name, phone, address
+// Step 4 — name, phone + email, password (creates the account)
+async function claim(name, phone) {
+  await rpc("claim_registration", { p_token: ticket.token, p_name: name, p_phone: phone });
+  save(TICKET_KEY, null); save(PENDING_KEY, null); ticket = null;
+  wzProfile = { ...wzProfile, looking_for: true, name, phone };
+  showStep(5);
+}
 $("wz4").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
   const f = e.target;
-  const d = { p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_address: f.address.value.trim(), p_zip: f.zip.value.trim() };
-  if (!validate(f, {
-    name: d.p_name.length >= 2,
-    phone: /^\+?[0-9 ()-]{7,20}$/.test(d.p_phone),
-    address: d.p_address.length >= 5,
-    zip: /^[A-Za-z0-9 -]{4,10}$/.test(d.p_zip),
-  })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Saving…", async () => {
-    await rpc("save_details", d);
-    wzProfile = { ...wzProfile, name: d.p_name, phone: d.p_phone, address: d.p_address, zip: d.p_zip };
-    showStep(5);
+  const name = f.name.value.trim(), phone = f.phone.value.trim(), email = f.regEmail.value.trim();
+  const checks = { name: name.length >= 2, phone: /^\+?[0-9 ()-]{7,20}$/.test(phone) };
+  if (!authUserId) Object.assign(checks, {
+    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    regPassword: f.regPassword.value.length >= 6,
+    regPassword2: f.regPassword2.value.length >= 6 && f.regPassword2.value === f.regPassword.value,
+  });
+  if (!validate(f, checks)) return;
+  await withBusy($("acctBtn"), authUserId ? "Saving…" : "Creating account…", async () => {
+    if (!authUserId) {
+      if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
+      const { data, error } = await sb.auth.signUp({ email, password: f.regPassword.value });
+      if (error) {
+        if (/registered|exists/i.test(error.message)) {
+          save(PENDING_KEY, { name, phone });
+          toast("This email already has an account. Log in to continue.");
+          setAuthMode("login"); $("logEmail").value = email;
+        } else toast(error.message);
+        return;
+      }
+      if (!data.session) {
+        save(PENDING_KEY, { name, phone });
+        toast("Check your email to confirm your account, then log in to finish.");
+        setAuthMode("login"); $("logEmail").value = email;
+        return;
+      }
+      authUserId = data.user.id; wzProfile = {};
+      renderHeader();
+    }
+    await claim(name, phone);
   });
 });
 
@@ -1292,10 +1349,9 @@ $("wz4").addEventListener("submit", async e => {
 $("termsLink").addEventListener("click", () => { $("terms").disabled = false; $("termsHint").hidden = true; });
 $("wz5").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
   const f = e.target;
   if (!validate(f, { terms: f.terms.checked })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Creating account…", async () => {
+  await withBusy(f.querySelector("[type=submit]"), "Finishing…", async () => {
     await rpc("complete_registration", { p_accept: true });
     await afterAuth();
   });
@@ -1303,7 +1359,7 @@ $("wz5").addEventListener("submit", async e => {
 
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
-  if (needBackend()) return;
+  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
   const f = e.target;
   if (!validate(f, { logEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 })) return;
   await withBusy(f.querySelector("[type=submit]"), "Logging in…", async () => {
