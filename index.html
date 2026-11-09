@@ -122,6 +122,34 @@
   .config-banner { background: #fff6e0; border-bottom: 1px solid #f0dca8; color: #7a5b12; text-align: center; padding: 10px 16px; font-size: .88rem; }
   .config-banner code { background: #f3e6c4; padding: 1px 6px; border-radius: 4px; }
   .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Sign-up wizard */
+  .wz-progress { margin-bottom: 18px; }
+  .wz-bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .wz-bar span { display: block; height: 100%; width: 20%; background: var(--accent); transition: width .3s; }
+  .wz-label { font-size: .8rem; color: var(--muted); margin-top: 6px; font-weight: 600; }
+  .captcha-box { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .captcha-box img { width: 200px; height: 70px; border: 1px solid var(--line); border-radius: 10px; background: #f3ede4; }
+  .icon-btn { width: 42px; height: 42px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; font-size: 1.2rem; }
+  .icon-btn:hover { border-color: var(--accent); }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .choice.wide { grid-column: 1 / -1; }
+  .field .choice { display: block; margin: 0; font-weight: 500; position: relative; }
+  .choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .choice span { display: flex; gap: 8px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .9rem; cursor: pointer; background: var(--bg); }
+  .choice input:checked + span { border: 2px solid var(--accent); background: #fdf3ee; padding: 9px 11px; }
+  .choice input:focus-visible + span { outline: 2px solid var(--accent); }
+  .field.invalid .choice span { border-color: #b3261e; }
+  .recs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; }
+  .rec { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: .85rem; }
+  .rec .ic { aspect-ratio: 2; display: grid; place-items: center; font-size: 2rem; }
+  .rec b { display: block; padding: 8px 10px; font-weight: 500; }
+  .terms-box { display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--bg); margin-bottom: 14px; }
+  .terms-box a { color: var(--accent); font-weight: 600; }
+  .terms-box small { display: block; color: var(--muted); font-size: .78rem; }
+  .field label.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 500; font-size: .9rem; }
+  .field .check input { width: auto; margin-top: 4px; accent-color: var(--accent); }
+  .linkbtn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--muted); font-size: .82rem; text-decoration: underline; }
   .full { width: 100%; padding: 13px; margin-top: 6px; }
 
   .detail { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
@@ -311,41 +339,133 @@
       <button type="button" class="auth-tab" data-auth="login">Log in</button>
     </div>
 
-    <form id="registerForm" novalidate>
-      <div class="field">
-        <label for="regEmail">Email</label>
-        <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        <div class="error">Please enter a valid email.</div>
+    <!-- Sign-up wizard: 5 steps. Every step is ALSO checked on the
+         server (see db/schema.sql), so it cannot be skipped from devtools. -->
+    <div id="wizard">
+      <div class="wz-progress">
+        <div class="wz-bar"><span id="wzBar"></span></div>
+        <div class="wz-label" id="wzLabel">Step 1 of 5 · Account</div>
       </div>
-      <div class="field">
-        <label for="regPassword">Password</label>
-        <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
-        <div class="error">Password must be at least 6 characters.</div>
-      </div>
-      <div class="field">
-        <label for="name">Full name</label>
-        <input id="name" name="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
-        <div class="error">Please enter your name.</div>
-      </div>
-      <div class="row">
+
+      <form class="wz-step" data-step="1" id="wz1" novalidate>
         <div class="field">
-          <label for="address">Address</label>
-          <input id="address" name="address" type="text" placeholder="e.g. 123 Main St, Apt 4" autocomplete="street-address">
-          <div class="error">Please enter your address.</div>
+          <label for="regEmail">Email</label>
+          <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
+          <div class="error">Please enter a valid email.</div>
         </div>
         <div class="field">
-          <label for="zip">Postal code</label>
-          <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
-          <div class="error">Enter a valid postal code (4–10 characters).</div>
+          <label for="regPassword">Password</label>
+          <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
+          <div class="error">Password must be at least 6 characters.</div>
         </div>
-      </div>
-      <div class="field">
-        <label for="phone">Phone number</label>
-        <input id="phone" name="phone" type="tel" placeholder="e.g. +52 55 1234 5678" autocomplete="tel">
-        <div class="error">Please enter a valid phone number.</div>
-      </div>
-      <button class="btn full" type="submit">Create account</button>
-    </form>
+        <div class="field">
+          <label for="regPassword2">Confirm password</label>
+          <input id="regPassword2" name="regPassword2" type="password" placeholder="Repeat your password" autocomplete="new-password">
+          <div class="error">Passwords do not match.</div>
+        </div>
+        <button class="btn full" type="submit">Next</button>
+      </form>
+
+      <form class="wz-step" data-step="2" id="wz2" novalidate hidden>
+        <p class="sub" style="margin-bottom:12px">Let's make sure you're human. Type the 5 numbers you see in the image.</p>
+        <div class="captcha-box">
+          <img id="captchaImg" width="200" height="70" alt="Security image with 5 numbers">
+          <button type="button" class="icon-btn" id="captchaRefresh" title="Get a new image" aria-label="Get a new image">&#8635;</button>
+        </div>
+        <div class="field">
+          <label for="captcha">Numbers in the image</label>
+          <input id="captcha" name="captcha" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="e.g. 12345">
+          <div class="error" id="captchaErr">Please type the 5 numbers.</div>
+        </div>
+        <button class="btn full" type="submit">Verify</button>
+      </form>
+
+      <form class="wz-step" data-step="3" id="wz3" novalidate hidden>
+        <p class="sub" style="margin-bottom:12px">Tell us a bit about you so we can recommend pieces you'll love.</p>
+        <div class="field">
+          <label>What are you looking for?</label>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="looking" value="clothing"><span>👕 Clothing</span></label>
+            <label class="choice"><input type="radio" name="looking" value="objects"><span>🕯️ Home objects</span></label>
+            <label class="choice"><input type="radio" name="looking" value="shoes"><span>👞 Shoes</span></label>
+            <label class="choice"><input type="radio" name="looking" value="paintings"><span>🎨 Paintings</span></label>
+            <label class="choice wide"><input type="radio" name="looking" value="everything"><span>✨ A bit of everything</span></label>
+          </div>
+          <div class="error">Please choose one option.</div>
+        </div>
+        <div class="field">
+          <label for="budget">Approximate budget</label>
+          <select id="budget" name="budget">
+            <option value="">Select your budget</option>
+            <option value="under50">Under $50</option>
+            <option value="50to100">$50 – $100</option>
+            <option value="100to250">$100 – $250</option>
+            <option value="over250">More than $250</option>
+          </select>
+          <div class="error">Please select your budget.</div>
+        </div>
+        <div class="field">
+          <label for="profession">Profession</label>
+          <select id="profession" name="profession">
+            <option value="">Select your profession</option>
+            <option>Student</option><option>Employee</option><option>Self-employed</option>
+            <option>Business owner</option><option>Artist / Designer</option><option>Teacher</option>
+            <option>Engineer</option><option>Healthcare professional</option><option>Retired</option><option>Other</option>
+          </select>
+          <div class="error">Please select your profession.</div>
+        </div>
+        <button class="btn full" type="submit" id="surveyBtn">See my recommendations</button>
+        <div id="recsBox" hidden>
+          <h3>Recommended for you</h3>
+          <div class="recs" id="recs"></div>
+          <p class="sub" style="font-size:.82rem;margin-bottom:8px">Prices unlock when you finish signing up.</p>
+          <button class="btn full" type="button" id="recsNext">Continue</button>
+        </div>
+      </form>
+
+      <form class="wz-step" data-step="4" id="wz4" novalidate hidden>
+        <div class="field">
+          <label for="name">Full name</label>
+          <input id="name" name="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
+          <div class="error">Please enter your full name.</div>
+        </div>
+        <div class="field">
+          <label for="phone">Phone number</label>
+          <input id="phone" name="phone" type="tel" placeholder="e.g. +52 55 1234 5678" autocomplete="tel">
+          <div class="error">Please enter a valid phone number.</div>
+        </div>
+        <div class="row">
+          <div class="field">
+            <label for="address">Address</label>
+            <input id="address" name="address" type="text" placeholder="e.g. 123 Main St, Apt 4" autocomplete="street-address">
+            <div class="error">Please enter your address.</div>
+          </div>
+          <div class="field">
+            <label for="zip">Postal code</label>
+            <input id="zip" name="zip" type="text" placeholder="e.g. 06600" autocomplete="postal-code">
+            <div class="error">Enter a valid postal code (4–10 characters).</div>
+          </div>
+        </div>
+        <button class="btn full" type="submit">Next</button>
+      </form>
+
+      <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
+        <div class="terms-box">
+          <span style="font-size:1.8rem">📄</span>
+          <div>
+            <a href="terminos.pdf" target="_blank" rel="noopener" id="termsLink">Read the Terms and Conditions (PDF)</a>
+            <small id="termsHint">Open the document to enable the checkbox.</small>
+          </div>
+        </div>
+        <div class="field">
+          <label class="check"><input type="checkbox" id="terms" name="terms" disabled> I have read and accept the Terms and Conditions.</label>
+          <div class="error">You must accept the Terms and Conditions to continue.</div>
+        </div>
+        <button class="btn full" type="submit">Create account</button>
+      </form>
+
+      <button type="button" class="linkbtn" id="wzLogout" hidden>Use a different account</button>
+    </div>
 
     <form id="loginForm" novalidate hidden>
       <div class="field">
@@ -456,18 +576,20 @@ function orderFromRow(o) {
     date: new Date(o.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
     items: o.items, total: +o.total, method: o.method, address: o.address, status: o.status };
 }
+// `user` is only set once the 5-step sign-up wizard is COMPLETE (the server
+// decides that: profiles.completed). Signed-in but unfinished accounts keep
+// their partial profile in `wzProfile` and see no prices.
+let wzProfile = null;
 async function loadProfileAndOrders(uid) {
-  let [{ data: prof }, { data: ords }] = await Promise.all([
-    sb.from("profiles").select("*").eq("id", uid).maybeSingle(),
-    sb.from("orders").select("*").order("created_at", { ascending: false }),
-  ]);
-  // Make sure every logged-in user has a profile row (e.g. users created
-  // by hand in the Supabase dashboard have none yet).
-  if (!prof) {
-    await sb.from("profiles").upsert({ id: uid, name: "Member" });
-    prof = { name: "Member", address: "", zip: "", phone: "" };
+  const { data: prof } = await sb.from("profiles").select("*").eq("id", uid).maybeSingle();
+  if (!prof || !prof.completed) {
+    user = null; orders = []; products = [];
+    wzProfile = prof || {};
+    return;
   }
+  wzProfile = null;
   user = { name: prof.name || "Member", address: prof.address || "", zip: prof.zip || "", phone: prof.phone || "" };
+  const { data: ords } = await sb.from("orders").select("*").order("created_at", { ascending: false });
   orders = (ords || []).map(orderFromRow);
 }
 async function refreshSession() {
@@ -475,10 +597,10 @@ async function refreshSession() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) {
     authUserId = session.user.id;
-    await Promise.all([loadProducts(), loadUiText()]);
     await loadProfileAndOrders(authUserId);
+    if (user) await Promise.all([loadProducts(), loadUiText()]);
   } else {
-    authUserId = null; user = null; products = []; orders = [];
+    authUserId = null; user = null; wzProfile = null; products = []; orders = [];
   }
 }
 
@@ -511,7 +633,8 @@ function renderGrid() {
 
 function renderHeader() {
   $("userChip").textContent = user ? `Hi, ${user.name.split(" ")[0]}` : "";
-  $("authBtn").textContent = user ? "Log out" : "Sign up";
+  $("authBtn").textContent = user ? "Log out" : authUserId ? "Finish sign-up" : "Sign up";
+  $("heroSignup").textContent = authUserId && !user ? "Finish your sign-up" : "Create an account";
   $("ordersBtn").hidden = !user;
   $("cartCount").textContent = cart.reduce((s, i) => s + i.qty, 0);
   $("memberBanner").hidden = !user;
@@ -954,84 +1077,243 @@ document.addEventListener("click", e => {
 $("search").addEventListener("input", renderGrid);
 $("sort").addEventListener("change", renderGrid);
 
-// ---------- Auth (Supabase) ----------
+// ---------- Auth (Supabase) + 5-step sign-up wizard ----------
+// The wizard below is only the UI. Each step is validated again on the
+// server by a Postgres function (db/schema.sql) that refuses to run unless
+// the previous step is done, and products / prices / orders are locked by
+// RLS until the server marks the profile as completed. Changing this code
+// in devtools therefore cannot unlock the shop.
+const STEP_NAMES = ["Account", "Verification", "Your interests", "Your details", "Terms & conditions"];
+let wzStep = 1;
+
+function stepFor(p) {
+  if (!authUserId) return 1;
+  if (!p || !p.captcha_ok) return 2;
+  if (!p.looking_for) return 3;
+  if (!p.name || !p.phone || !p.address || !p.zip) return 4;
+  return 5;
+}
+function showStep(n) {
+  wzStep = n;
+  document.querySelectorAll(".wz-step").forEach(f => { f.hidden = +f.dataset.step !== n; });
+  $("wzBar").style.width = (n / 5 * 100) + "%";
+  $("wzLabel").textContent = `Step ${n} of 5 · ${STEP_NAMES[n - 1]}`;
+  $("wzLogout").hidden = !authUserId;
+  document.querySelector(".auth-tabs").hidden = !!authUserId;
+  $("authTitle").textContent = authUserId ? "Finish your registration" : "Create your account";
+  $("authSub").textContent = authUserId
+    ? "A few more steps to unlock prices, product details and checkout."
+    : "Register to unlock prices, product details and checkout.";
+  if (n === 2) loadCaptcha();
+  if (n === 4 && wzProfile) {
+    const f = $("wz4");
+    if (!f.name.value && wzProfile.name && wzProfile.name !== "Member") f.name.value = wzProfile.name;
+    if (!f.phone.value && wzProfile.phone) f.phone.value = wzProfile.phone;
+    if (!f.address.value && wzProfile.address) f.address.value = wzProfile.address;
+    if (!f.zip.value && wzProfile.zip) f.zip.value = wzProfile.zip;
+  }
+  document.querySelector(`.wz-step[data-step="${n}"] input:not([type=radio]):not([disabled])`)?.focus();
+}
 function setAuthMode(mode) {
   const reg = mode !== "login";
   document.querySelectorAll(".auth-tab").forEach(b => b.classList.toggle("active", (b.dataset.auth === "login") === !reg));
-  $("registerForm").hidden = !reg;
+  $("wizard").hidden = !reg;
   $("loginForm").hidden = reg;
-  $("authTitle").textContent = reg ? "Create your account" : "Welcome back";
-  $("authSub").textContent = reg ? "Register to unlock prices, product details and checkout." : "Log in to see prices and your orders.";
+  if (reg) showStep(stepFor(wzProfile));
+  else {
+    document.querySelector(".auth-tabs").hidden = false;
+    $("authTitle").textContent = "Welcome back";
+    $("authSub").textContent = "Log in to see prices and your orders.";
+  }
 }
 function openAuth(mode) { setAuthMode(mode || "register"); open("registerOverlay"); }
 
+// Marks invalid fields; `checks` maps a field name to true/false.
+function validate(form, checks) {
+  let ok = true;
+  for (const k in checks) {
+    const el = form.querySelector(`[name="${k}"]`).closest(".field");
+    el.classList.toggle("invalid", !checks[k]);
+    if (!checks[k]) ok = false;
+  }
+  if (!ok) form.querySelector(".invalid input:not([type=radio]), .invalid select")?.focus();
+  return ok;
+}
+async function rpc(fn, args) {
+  const { data, error } = await sb.rpc(fn, args);
+  if (error) { toast(error.message); throw error; }
+  return data;
+}
+async function withBusy(btn, label, work) {
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = label;
+  try { return await work(); } catch (err) { console.warn(err); } finally { btn.disabled = false; btn.textContent = old; }
+}
+const needBackend = () => { if (!sb) toast("Backend not configured yet — add your Supabase keys in config.js."); return !sb; };
+
 async function afterAuth() {
-  await loadProducts();
   await loadProfileAndOrders(authUserId);
+  if (!user) {                       // signed in, but the wizard is not finished
+    renderHeader(); renderGrid();
+    openAuth("register");
+    return;
+  }
+  await Promise.all([loadProducts(), loadUiText()]);
   close("registerOverlay");
+  ["wz1", "wz2", "wz3", "wz4", "wz5"].forEach(id => $(id).reset());
   renderHeader(); renderGrid();
   window.scrollTo({ top: 0, behavior: "smooth" });
   toast(`Welcome, ${user.name.split(" ")[0]}! Prices are now unlocked.`);
   if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
 }
+async function logout() {
+  if (sb) await sb.auth.signOut();
+  user = null; authUserId = null; wzProfile = null; products = []; orders = []; cart = [];
+  try { localStorage.removeItem("mm_cart2"); } catch {}
+  renderHeader(); renderGrid();
+}
 
 $("authBtn").addEventListener("click", async () => {
-  if (user) {
-    if (sb) await sb.auth.signOut();
-    user = null; authUserId = null; products = []; orders = []; cart = [];
-    try { localStorage.removeItem("mm_cart2"); } catch {}
-    renderHeader(); renderGrid(); toast("You have been logged out.");
-  } else openAuth("register");
+  if (user) { await logout(); toast("You have been logged out."); }
+  else openAuth("register");
 });
 $("heroSignup").addEventListener("click", () => openAuth("register"));
 $("ordersBtn").addEventListener("click", renderOrders);
 $("cartBtn").addEventListener("click", () => requireUser(() => { renderCart(); open("cartOverlay"); }));
 document.addEventListener("click", e => { if (e.target.matches(".auth-tab")) setAuthMode(e.target.dataset.auth); });
+document.querySelectorAll(".wz-step, #loginForm").forEach(f =>
+  f.addEventListener("input", e => e.target.closest(".field")?.classList.remove("invalid")));
+$("wzLogout").addEventListener("click", async () => { await logout(); setAuthMode("register"); });
 
-$("registerForm").addEventListener("submit", async e => {
+// Step 1 — email + password (creates the Supabase account)
+$("wz1").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
+  if (needBackend()) return;
   const f = e.target;
-  const profile = { name: f.name.value.trim(), address: f.address.value.trim(), zip: f.zip.value.trim(), phone: f.phone.value.trim() };
-  const checks = {
-    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.regEmail.value.trim()),
+  const email = f.regEmail.value.trim();
+  if (!validate(f, {
+    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
     regPassword: f.regPassword.value.length >= 6,
-    name: profile.name.length >= 2,
-    address: profile.address.length >= 5,
-    zip: /^[A-Za-z0-9 -]{4,10}$/.test(profile.zip),
-    phone: /^\+?[0-9 ()-]{7,20}$/.test(profile.phone),
-  };
-  let ok = true;
-  for (const k in checks) { f[k].closest(".field").classList.toggle("invalid", !checks[k]); if (!checks[k]) ok = false; }
-  if (!ok) { f.querySelector(".invalid input, .invalid select")?.focus(); return; }
+    regPassword2: f.regPassword2.value.length >= 6 && f.regPassword2.value === f.regPassword.value,
+  })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Creating account…", async () => {
+    const { data, error } = await sb.auth.signUp({ email, password: f.regPassword.value });
+    if (error) {
+      if (/registered|exists/i.test(error.message)) {
+        toast("This email already has an account. Log in to continue.");
+        setAuthMode("login"); $("logEmail").value = email;
+      } else toast(error.message);
+      return;
+    }
+    if (!data.session) {
+      toast("Check your email to confirm your account, then log in to continue.");
+      setAuthMode("login"); $("logEmail").value = email;
+      return;
+    }
+    authUserId = data.user.id; wzProfile = {};
+    f.reset(); renderHeader();
+    showStep(2);
+  });
+});
 
-  const btn = f.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Creating…";
-  const { data, error } = await sb.auth.signUp({ email: f.regEmail.value.trim(), password: f.regPassword.value });
-  btn.disabled = false; btn.textContent = "Create account";
-  if (error) { toast(error.message); return; }
-  if (!data.session) { toast("Almost there! Check your email to confirm your account, then log in."); setAuthMode("login"); return; }
-  authUserId = data.user.id;
-  await sb.from("profiles").upsert({ id: authUserId, ...profile });
-  f.reset();
-  await afterAuth();
+// Step 2 — captcha (image generated and checked on the server)
+async function loadCaptcha() {
+  const img = $("captchaImg");
+  img.removeAttribute("src");
+  $("wz2").captcha.value = "";
+  try {
+    const svg = await rpc("new_captcha");
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  } catch {}
+}
+$("captchaRefresh").addEventListener("click", loadCaptcha);
+$("wz2").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (needBackend()) return;
+  const f = e.target;
+  const answer = f.captcha.value.trim();
+  $("captchaErr").textContent = "Please type the 5 numbers.";
+  if (!validate(f, { captcha: /^\d{5}$/.test(answer) })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Checking…", async () => {
+    const res = await rpc("verify_captcha", { p_answer: answer });
+    if (res === "ok") { wzProfile = { ...wzProfile, captcha_ok: true }; showStep(3); return; }
+    if (res === "expired") {
+      toast("That image expired. Here is a new one.");
+      await loadCaptcha();
+      return;
+    }
+    $("captchaErr").textContent = "Those numbers don't match. Try again.";
+    f.captcha.closest(".field").classList.add("invalid");
+    f.captcha.select();
+  });
+});
+
+// Step 3 — survey + recommendations
+$("wz3").addEventListener("change", () => { $("recsBox").hidden = true; $("surveyBtn").hidden = false; });
+$("wz3").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (needBackend()) return;
+  const f = e.target;
+  const looking = f.querySelector("[name=looking]:checked")?.value || "";
+  if (!validate(f, { looking: !!looking, budget: !!f.budget.value, profession: !!f.profession.value })) return;
+  await withBusy($("surveyBtn"), "Finding pieces for you…", async () => {
+    const recs = await rpc("save_survey", { p_looking_for: looking, p_budget: f.budget.value, p_profession: f.profession.value });
+    wzProfile = { ...wzProfile, looking_for: looking };
+    $("recs").innerHTML = (recs || []).length
+      ? recs.map(r => `<div class="rec"><div class="ic" style="background:${r.bg}">${r.icon}</div><b>${r.name}</b></div>`).join("")
+      : `<p class="sub" style="grid-column:1/-1">We'll show you great picks as soon as you're in.</p>`;
+    $("surveyBtn").hidden = true;
+    $("recsBox").hidden = false;
+    $("recsNext").focus();
+  });
+});
+$("recsNext").addEventListener("click", () => showStep(4));
+
+// Step 4 — name, phone, address
+$("wz4").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (needBackend()) return;
+  const f = e.target;
+  const d = { p_name: f.name.value.trim(), p_phone: f.phone.value.trim(), p_address: f.address.value.trim(), p_zip: f.zip.value.trim() };
+  if (!validate(f, {
+    name: d.p_name.length >= 2,
+    phone: /^\+?[0-9 ()-]{7,20}$/.test(d.p_phone),
+    address: d.p_address.length >= 5,
+    zip: /^[A-Za-z0-9 -]{4,10}$/.test(d.p_zip),
+  })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Saving…", async () => {
+    await rpc("save_details", d);
+    wzProfile = { ...wzProfile, name: d.p_name, phone: d.p_phone, address: d.p_address, zip: d.p_zip };
+    showStep(5);
+  });
+});
+
+// Step 5 — terms and conditions
+$("termsLink").addEventListener("click", () => { $("terms").disabled = false; $("termsHint").hidden = true; });
+$("wz5").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (needBackend()) return;
+  const f = e.target;
+  if (!validate(f, { terms: f.terms.checked })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Creating account…", async () => {
+    await rpc("complete_registration", { p_accept: true });
+    await afterAuth();
+  });
 });
 
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
-  if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
+  if (needBackend()) return;
   const f = e.target;
-  const checks = { logEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 };
-  let ok = true;
-  for (const k in checks) { f[k].closest(".field").classList.toggle("invalid", !checks[k]); if (!checks[k]) ok = false; }
-  if (!ok) return;
-
-  const btn = f.querySelector("button[type=submit]"); btn.disabled = true; btn.textContent = "Logging in…";
-  const { data, error } = await sb.auth.signInWithPassword({ email: f.logEmail.value.trim(), password: f.logPassword.value });
-  btn.disabled = false; btn.textContent = "Log in";
-  if (error) { toast(error.message); return; }
-  authUserId = data.user.id;
-  f.reset();
-  await afterAuth();
+  if (!validate(f, { logEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Logging in…", async () => {
+    const { data, error } = await sb.auth.signInWithPassword({ email: f.logEmail.value.trim(), password: f.logPassword.value });
+    if (error) { toast(error.message); return; }
+    authUserId = data.user.id;
+    f.reset();
+    await afterAuth();
+    if (!user) toast("Finish your registration to unlock prices.");
+  });
 });
 
 // ---------- Startup ----------
