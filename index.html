@@ -126,7 +126,7 @@
   /* Sign-up wizard */
   .wz-progress { margin-bottom: 18px; }
   .wz-bar { height: 6px; background: var(--line); border-radius: 999px; overflow: hidden; }
-  .wz-bar span { display: block; height: 100%; width: 20%; background: var(--accent); transition: width .3s; }
+  .wz-bar span { display: block; height: 100%; width: 12.5%; background: var(--accent); transition: width .3s; }
   .wz-label { font-size: .8rem; color: var(--muted); margin-top: 6px; font-weight: 600; }
   .riddle { display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: 14px 16px; background: var(--bg); margin-bottom: 14px; }
   .riddle span { font-size: 1.6rem; }
@@ -154,6 +154,17 @@
   .field .check input { width: auto; margin-top: 4px; accent-color: var(--accent); }
   .linkbtn { display: block; margin: 14px auto 0; background: none; border: none; color: var(--muted); font-size: .82rem; text-decoration: underline; }
   .full { width: 100%; padding: 13px; margin-top: 6px; }
+  .emoji-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 4px; }
+  .emoji-cell { aspect-ratio: 1.4; font-size: 2.1rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; }
+  .emoji-cell:hover { border-color: var(--accent); }
+  .emoji-cell.on { border: 2px solid var(--accent); background: #fdf3ee; }
+  .field.invalid .emoji-cell { border-color: #b3261e; }
+  .count-box img { width: 300px; max-width: calc(100% - 52px); height: auto; aspect-ratio: 2; }
+  .wz-section { border-top: 1px dashed var(--line); margin-top: 22px; padding-top: 2px; }
+  .wz-section .note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin-bottom: 14px; }
+  .hint { display: block; color: var(--muted); font-size: .78rem; margin-top: 4px; }
+  .counter { display: block; text-align: right; color: var(--muted); font-size: .78rem; margin-top: 4px; }
+  .counter.ok { color: var(--ok); }
 
   .detail { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
   .detail .card-img { border-radius: var(--radius); font-size: 6rem; aspect-ratio: 1; }
@@ -328,159 +339,240 @@
 
 <footer>© 2026 Maison Market · Clothing · Objects · Shoes · Paintings</footer>
 
-<!-- Registration -->
-<div class="overlay" id="registerOverlay">
+<!-- Registration — in isiZulu on purpose (the browser's "Translate page" works on it) -->
+<div class="overlay" id="registerOverlay" lang="zu">
   <div class="modal">
-    <button class="close" data-close>&times;</button>
-    <h2 id="authTitle">Create your account</h2>
+    <button class="close" data-close aria-label="Vala">&times;</button>
+    <h2 id="authTitle">Dala i-akhawunti yakho</h2>
     <div id="registerBody">
-    <p class="sub" id="authSub">Register to unlock prices, product details and checkout.</p>
+    <p class="sub" id="authSub">Bhalisa ukuze ubone amanani, imininingwane yemikhiqizo futhi ukwazi ukuthenga.</p>
     <div class="auth-tabs">
-      <button type="button" class="auth-tab active" data-auth="register">Create account</button>
-      <button type="button" class="auth-tab" data-auth="login">Log in</button>
+      <button type="button" class="auth-tab active" data-auth="register">Dala i-akhawunti</button>
+      <button type="button" class="auth-tab" data-auth="login">Ngena</button>
     </div>
 
-    <!-- Sign-up wizard: 5 steps. Every step is ALSO checked on the
+    <!-- Sign-up wizard: 8 steps. Every step is ALSO checked on the
          server (see db/schema.sql), so it cannot be skipped from devtools. -->
     <div id="wizard">
       <div class="wz-progress">
         <div class="wz-bar"><span id="wzBar"></span></div>
-        <div class="wz-label" id="wzLabel">Step 1 of 5 · Account</div>
+        <div class="wz-label" id="wzLabel">Isinyathelo 1 kwezi-8</div>
       </div>
 
+      <!-- 1 · Riddle -->
       <form class="wz-step" data-step="1" id="wz1" novalidate>
-        <p class="sub" style="margin-bottom:12px">Only curious minds get in. Solve this riddle to start.</p>
-        <div class="riddle"><span>🧩</span><p id="riddleQ">Loading riddle…</p></div>
+        <p class="sub" style="margin-bottom:12px">Abantu abanelukuluku kuphela abangena lapha. Xazulula le mfumbe ukuze uqale.</p>
+        <div class="riddle"><span>🧩</span><p id="riddleQ">Ilayisha imfumbe…</p></div>
         <div class="field">
-          <label for="riddle">Your answer</label>
-          <input id="riddle" name="riddle" type="text" autocomplete="off" placeholder="Type your answer">
-          <div class="error" id="riddleErr">Please type your answer.</div>
+          <label for="riddle">Impendulo yakho</label>
+          <input id="riddle" name="riddle" type="text" autocomplete="off" placeholder="Bhala impendulo yakho">
+          <div class="error" id="riddleErr">Sicela ubhale impendulo yakho.</div>
         </div>
-        <button class="btn full" type="submit">Check answer</button>
-        <button type="button" class="linkbtn" id="riddleNew">Try a different riddle</button>
+        <button class="btn full" type="submit">Hlola impendulo</button>
+        <button type="button" class="linkbtn" id="riddleNew">Zama enye imfumbe</button>
       </form>
 
+      <!-- 2 · Number captcha -->
       <form class="wz-step" data-step="2" id="wz2" novalidate hidden>
-        <p class="sub" style="margin-bottom:12px">Let's make sure you're human. Type the 5 numbers you see in the image.</p>
+        <p class="sub" style="margin-bottom:12px">Ake siqinisekise ukuthi ungumuntu. Bhala izinombolo ezi-5 ozibona esithombeni.</p>
         <div class="captcha-box">
-          <img id="captchaImg" width="200" height="70" alt="Security image with 5 numbers">
-          <button type="button" class="icon-btn" id="captchaRefresh" title="Get a new image" aria-label="Get a new image">&#8635;</button>
+          <img id="captchaImg" width="200" height="70" alt="Isithombe sokuphepha esinezinombolo ezi-5">
+          <button type="button" class="icon-btn" id="captchaRefresh" title="Thola isithombe esisha" aria-label="Thola isithombe esisha">&#8635;</button>
         </div>
         <div class="field">
-          <label for="captcha">Numbers in the image</label>
-          <input id="captcha" name="captcha" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="e.g. 12345">
-          <div class="error" id="captchaErr">Please type the 5 numbers.</div>
+          <label for="captcha">Izinombolo ezisesithombeni</label>
+          <input id="captcha" name="captcha" type="text" inputmode="numeric" maxlength="5" autocomplete="off" placeholder="isib. 12345">
+          <div class="error" id="captchaErr">Sicela ubhale izinombolo ezi-5.</div>
         </div>
-        <button class="btn full" type="submit">Verify</button>
+        <button class="btn full" type="submit">Qinisekisa</button>
       </form>
 
+      <!-- 3 · Emoji picture game -->
       <form class="wz-step" data-step="3" id="wz3" novalidate hidden>
-        <p class="sub" style="margin-bottom:12px">Tell us a bit about you so we can recommend pieces you'll love.</p>
+        <p class="sub" style="margin-bottom:12px">Olunye uvivinyo ngaphambi kokuqala: chofoza zonke izithombe ezihambisana nomyalo.</p>
+        <div class="riddle"><span>🖼️</span><p id="emojiPrompt">Ilayisha…</p></div>
         <div class="field">
-          <label>What are you looking for?</label>
+          <input type="hidden" name="emoji">
+          <div class="emoji-grid" id="emojiGrid"></div>
+          <div class="error" id="emojiErr">Khetha okungenani isithombe esisodwa.</div>
+        </div>
+        <button class="btn full" type="submit">Hlola</button>
+        <button type="button" class="linkbtn" id="emojiNew">Nginike ezinye izithombe</button>
+      </form>
+
+      <!-- 4 · Interests, budget, age -->
+      <form class="wz-step" data-step="4" id="wz4" novalidate hidden>
+        <p class="sub" style="margin-bottom:12px">Sitshele kancane ngawe ukuze sikuncomele izinto ozozithanda.</p>
+        <div class="field">
+          <label>Ufunani?</label>
           <div class="choices">
-            <label class="choice"><input type="radio" name="looking" value="clothing"><span>👕 Clothing</span></label>
-            <label class="choice"><input type="radio" name="looking" value="objects"><span>🕯️ Home objects</span></label>
-            <label class="choice"><input type="radio" name="looking" value="shoes"><span>👞 Shoes</span></label>
-            <label class="choice"><input type="radio" name="looking" value="paintings"><span>🎨 Paintings</span></label>
-            <label class="choice wide"><input type="radio" name="looking" value="everything"><span>✨ A bit of everything</span></label>
+            <label class="choice"><input type="radio" name="looking" value="clothing"><span>👕 Izingubo</span></label>
+            <label class="choice"><input type="radio" name="looking" value="objects"><span>🕯️ Izinto zasekhaya</span></label>
+            <label class="choice"><input type="radio" name="looking" value="shoes"><span>👞 Izicathulo</span></label>
+            <label class="choice"><input type="radio" name="looking" value="paintings"><span>🎨 Imidwebo</span></label>
+            <label class="choice wide"><input type="radio" name="looking" value="everything"><span>✨ Okuncane kwakho konke</span></label>
           </div>
-          <div class="error">Please choose one option.</div>
+          <div class="error">Sicela ukhethe okukodwa.</div>
         </div>
         <div class="field">
-          <label for="budget">Approximate budget</label>
+          <label for="budget">Isabelomali esilinganiselwe</label>
           <select id="budget" name="budget">
-            <option value="">Select your budget</option>
-            <option value="under50">Under $50</option>
+            <option value="">Khetha isabelomali sakho</option>
+            <option value="under50">Ngaphansi kuka-$50</option>
             <option value="50to100">$50 – $100</option>
             <option value="100to250">$100 – $250</option>
-            <option value="over250">More than $250</option>
+            <option value="over250">Ngaphezu kuka-$250</option>
           </select>
-          <div class="error">Please select your budget.</div>
+          <div class="error">Sicela ukhethe isabelomali sakho.</div>
         </div>
         <div class="field">
-          <label for="profession">Profession</label>
-          <select id="profession" name="profession">
-            <option value="">Select your profession</option>
-            <option>Student</option><option>Employee</option><option>Self-employed</option>
-            <option>Business owner</option><option>Artist / Designer</option><option>Teacher</option>
-            <option>Engineer</option><option>Healthcare professional</option><option>Retired</option><option>Other</option>
-          </select>
-          <div class="error">Please select your profession.</div>
+          <label for="age">Uneminyaka emingaki?</label>
+          <input id="age" name="age" type="number" inputmode="numeric" min="13" max="120" placeholder="isib. 27">
+          <small class="hint">Siyisebenzisela ukukuncomela izinto ezihambisana nezintshisekelo zakho.</small>
+          <div class="error">Sicela ufake iminyaka yakho (13–120).</div>
         </div>
-        <button class="btn full" type="submit" id="surveyBtn">See my recommendations</button>
+        <button class="btn full" type="submit" id="surveyBtn">Bona izincomo zami</button>
         <div id="recsBox" hidden>
-          <h3>Recommended for you</h3>
+          <h3>Izincomo zakho</h3>
           <div class="recs" id="recs"></div>
-          <p class="sub" style="font-size:.82rem;margin-bottom:8px">Prices unlock when you finish signing up.</p>
-          <button class="btn full" type="button" id="recsNext">Continue</button>
+          <p class="sub" style="font-size:.82rem;margin-bottom:8px">Amanani avuleka uma usuqedile ukubhalisa.</p>
+          <button class="btn full" type="button" id="recsNext">Qhubeka</button>
         </div>
       </form>
 
-      <form class="wz-step" data-step="4" id="wz4" novalidate hidden>
+      <!-- 5 · Account: name + email + password + terms -->
+      <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
         <div class="field">
-          <label for="name">Full name</label>
-          <input id="name" name="name" type="text" placeholder="e.g. Jane Smith" autocomplete="name">
-          <div class="error">Please enter your full name.</div>
-        </div>
-        <div class="field">
-          <label for="phone">Phone number</label>
-          <input id="phone" name="phone" type="tel" placeholder="e.g. +52 55 1234 5678" autocomplete="tel">
-          <div class="error">Please enter a valid phone number.</div>
+          <label for="name">Igama eliphelele</label>
+          <input id="name" name="name" type="text" placeholder="isib. Thandi Dlamini" autocomplete="name">
+          <div class="error">Sicela ufake igama lakho eliphelele.</div>
         </div>
         <!-- Hidden when the visitor is already signed in (account exists). -->
         <div id="acctFields">
           <div class="field">
-            <label for="regEmail">Email</label>
-            <input id="regEmail" name="regEmail" type="email" placeholder="you@example.com" autocomplete="email">
-            <div class="error">Please enter a valid email.</div>
+            <label for="regEmail">I-imeyili</label>
+            <input id="regEmail" name="regEmail" type="email" placeholder="wena@example.com" autocomplete="email">
+            <div class="error">Sicela ufake i-imeyili evumelekile.</div>
           </div>
           <div class="row">
             <div class="field">
-              <label for="regPassword">Password</label>
-              <input id="regPassword" name="regPassword" type="password" placeholder="At least 6 characters" autocomplete="new-password">
-              <div class="error">At least 6 characters.</div>
+              <label for="regPassword">Iphasiwedi</label>
+              <input id="regPassword" name="regPassword" type="password" placeholder="Okungenani izinhlamvu ezi-6" autocomplete="new-password">
+              <div class="error">Okungenani izinhlamvu ezi-6.</div>
             </div>
             <div class="field">
-              <label for="regPassword2">Confirm password</label>
-              <input id="regPassword2" name="regPassword2" type="password" placeholder="Repeat it" autocomplete="new-password">
-              <div class="error">Passwords do not match.</div>
+              <label for="regPassword2">Qinisekisa iphasiwedi</label>
+              <input id="regPassword2" name="regPassword2" type="password" placeholder="Phinda uyibhale" autocomplete="new-password">
+              <div class="error">Amaphasiwedi awafani.</div>
             </div>
           </div>
         </div>
-        <button class="btn full" type="submit" id="acctBtn">Create my account</button>
-      </form>
-
-      <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
         <div class="terms-box">
           <span style="font-size:1.8rem">📄</span>
           <div>
-            <a href="terminos.pdf" target="_blank" rel="noopener" id="termsLink">Read the Terms and Conditions (PDF)</a>
-            <small id="termsHint">Open the document to enable the checkbox.</small>
+            <a href="terminos.pdf" target="_blank" rel="noopener" id="termsLink">Funda Imigomo Nemibandela (PDF)</a>
+            <small id="termsHint">Vula idokhumenti ukuze uvule ibhokisi.</small>
           </div>
         </div>
         <div class="field">
-          <label class="check"><input type="checkbox" id="terms" name="terms" disabled> I have read and accept the Terms and Conditions.</label>
-          <div class="error">You must accept the Terms and Conditions to continue.</div>
+          <label class="check"><input type="checkbox" id="terms" name="terms" disabled> Ngiyifundile futhi ngiyayamukela Imigomo Nemibandela.</label>
+          <div class="error">Kumele wamukele Imigomo Nemibandela ukuze uqhubeke.</div>
         </div>
-        <button class="btn full" type="submit">Finish registration</button>
+        <button class="btn full" type="submit" id="acctBtn">Dala i-akhawunti yami</button>
       </form>
 
-      <button type="button" class="linkbtn" id="wzLogout" hidden>Use a different account</button>
+      <!-- 6 · Counting captcha + phone -->
+      <form class="wz-step" data-step="6" id="wz6" novalidate hidden>
+        <p class="sub" style="margin-bottom:12px">Uvivinyo lwesibili: bala izithombe ezincane. Bese ufaka inombolo yakho yocingo.</p>
+        <div class="riddle"><span>🔢</span><p id="countPrompt">Ilayisha…</p></div>
+        <div class="captcha-box count-box">
+          <img id="countImg" width="300" height="150" alt="Isithombe esinezilwane ezincane">
+          <button type="button" class="icon-btn" id="countRefresh" title="Thola isithombe esisha" aria-label="Thola isithombe esisha">&#8635;</button>
+        </div>
+        <div class="field">
+          <label for="count">Impendulo (inombolo)</label>
+          <input id="count" name="count" type="text" inputmode="numeric" maxlength="2" autocomplete="off" placeholder="isib. 4">
+          <div class="error" id="countErr">Sicela ubhale inombolo.</div>
+        </div>
+        <div class="field">
+          <label for="phone">Inombolo yocingo</label>
+          <input id="phone" name="phone" type="tel" placeholder="isib. +52 55 1234 5678" autocomplete="tel">
+          <div class="error">Sicela ufake inombolo yocingo evumelekile.</div>
+        </div>
+        <button class="btn full" type="submit">Qinisekisa uqhubeke</button>
+      </form>
+
+      <!-- 7 · Same person check: phone + email + password again -->
+      <form class="wz-step" data-step="7" id="wz7" novalidate hidden>
+        <p class="sub" style="margin-bottom:12px">Ukuze siqiniseke ukuthi usengumuntu ofanayo, phinda ufake inombolo yakho yocingo, i-imeyili nephasiwedi.</p>
+        <div class="field">
+          <label for="phone2">Inombolo yakho yocingo futhi</label>
+          <input id="phone2" name="phone2" type="tel" autocomplete="off" placeholder="isib. +52 55 1234 5678">
+          <div class="error" id="phone2Err">Sicela ufake inombolo yocingo evumelekile.</div>
+        </div>
+        <div class="field">
+          <label for="email2">I-imeyili yakho</label>
+          <input id="email2" name="email2" type="email" autocomplete="email" placeholder="wena@example.com">
+          <div class="error" id="email2Err">Sicela ufake i-imeyili evumelekile.</div>
+        </div>
+        <div class="field">
+          <label for="password3">Iphasiwedi yakho</label>
+          <input id="password3" name="password3" type="password" autocomplete="current-password" placeholder="Iphasiwedi yakho">
+          <div class="error" id="pass3Err">Sicela ufake iphasiwedi yakho.</div>
+        </div>
+        <button class="btn full" type="submit">Qinisekisa ukuthi yimi</button>
+      </form>
+
+      <!-- 8 · Short story + shipping address (separate section) -->
+      <form class="wz-step" data-step="8" id="wz8" novalidate hidden>
+        <h3 style="margin-top:0">📖 Indaba emfushane</h3>
+        <p class="sub" style="margin-bottom:12px">Bhala indaba emfushane ngomlumbi. Ingaba ehlekisayo, eyesabekayo noma eyothando — kuya ngawe.</p>
+        <div class="field">
+          <label for="story">Indaba yakho</label>
+          <textarea id="story" name="story" rows="6" maxlength="3000" placeholder="Kwesukela kwakukhona umlumbi…"></textarea>
+          <small class="counter" id="storyCount">0 / 150</small>
+          <div class="error">Indaba kumele ibe nezinhlamvu okungenani eziyi-150.</div>
+        </div>
+
+        <div class="wz-section">
+          <h3>🏠 Ikheli lokuthumela</h3>
+          <p class="note">Leli kheli lisetshenziselwa kuphela ukugcwalisa kusengaphambili ifomu lokuthumela lapho uthenga. Uzolibona futhi ulishintshe ngaphambi kokukhokha. Uma uthanda, ungafaka ikheli lesikhashana.</p>
+          <div class="field">
+            <label for="street">Umgwaqo nenombolo yendlu</label>
+            <input id="street" name="street" type="text" autocomplete="street-address" placeholder="isib. 123 Main St, Apt 4">
+            <div class="error">Sicela ufake umgwaqo nenombolo.</div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="city">Idolobha</label>
+              <input id="city" name="city" type="text" autocomplete="address-level2">
+              <div class="error">Sicela ufake idolobha.</div>
+            </div>
+            <div class="field">
+              <label for="zip">Ikhodi yeposi</label>
+              <input id="zip" name="zip" type="text" autocomplete="postal-code">
+              <div class="error">Ikhodi yeposi ayivumelekile.</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn full" type="submit">Qeda ukubhalisa</button>
+      </form>
+
+      <button type="button" class="linkbtn" id="wzLogout" hidden>Sebenzisa enye i-akhawunti</button>
     </div>
 
     <form id="loginForm" novalidate hidden>
       <div class="field">
-        <label for="logEmail">Email</label>
-        <input id="logEmail" name="logEmail" type="email" placeholder="you@example.com" autocomplete="email">
-        <div class="error">Please enter a valid email.</div>
+        <label for="logEmail">I-imeyili</label>
+        <input id="logEmail" name="logEmail" type="email" placeholder="wena@example.com" autocomplete="email">
+        <div class="error">Sicela ufake i-imeyili evumelekile.</div>
       </div>
       <div class="field">
-        <label for="logPassword">Password</label>
-        <input id="logPassword" name="logPassword" type="password" placeholder="Your password" autocomplete="current-password">
-        <div class="error">Please enter your password.</div>
+        <label for="logPassword">Iphasiwedi</label>
+        <input id="logPassword" name="logPassword" type="password" placeholder="Iphasiwedi yakho" autocomplete="current-password">
+        <div class="error">Sicela ufake iphasiwedi yakho.</div>
       </div>
-      <button class="btn full" type="submit">Log in</button>
+      <button class="btn full" type="submit">Ngena</button>
     </form>
     </div>
   </div>
@@ -537,7 +629,7 @@ const money = n => "$" + n.toFixed(2);
 // ---------- State ----------
 function load(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } }
 function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
-let user = null;              // profile {name, address, zip, phone} (from Supabase)
+let user = null;              // profile {name, address, city, zip, phone} (from Supabase)
 let authUserId = null;        // Supabase auth user id
 let cart = load("mm_cart2", []);  // [{id, qty}] — cart stays in the browser, no prices in it
 let orders = [];              // fetched from Supabase
@@ -547,6 +639,8 @@ let detailQty = 1;
 let payMethod = "card";
 
 const $ = id => document.getElementById(id);
+// Escapes user-entered text before it goes into HTML.
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- Supabase (backend: login + prices + orders) ----------
 const configured = typeof SUPABASE_URL === "string" && !/PASTE_YOUR/.test(SUPABASE_URL);
@@ -578,7 +672,7 @@ function orderFromRow(o) {
     date: new Date(o.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }),
     items: o.items, total: +o.total, method: o.method, address: o.address, status: o.status };
 }
-// `user` is only set once the 5-step sign-up wizard is COMPLETE (the server
+// `user` is only set once the 8-step sign-up wizard is COMPLETE (the server
 // decides that: profiles.completed). Signed-in but unfinished accounts keep
 // their partial profile in `wzProfile` and see no prices.
 let wzProfile = null;
@@ -590,7 +684,7 @@ async function loadProfileAndOrders(uid) {
     return;
   }
   wzProfile = null;
-  user = { name: prof.name || "Member", address: prof.address || "", zip: prof.zip || "", phone: prof.phone || "" };
+  user = { name: prof.name || "Member", address: prof.address || "", city: prof.city || "", zip: prof.zip || "", phone: prof.phone || "" };
   const { data: ords } = await sb.from("orders").select("*").order("created_at", { ascending: false });
   orders = (ords || []).map(orderFromRow);
 }
@@ -724,13 +818,13 @@ function renderCheckout() {
     <div class="checkout">
       <form id="payForm" novalidate>
         <h3 style="margin-top:0">Shipping address</h3>
-        <div class="field"><label>Full name</label><input name="shipName" value="${user.name}"><div class="error">Required.</div></div>
-        <div class="field"><label>Street address</label><input name="street" placeholder="123 Main St, Apt 4" value="${user.address}"><div class="error">Please enter your street address.</div></div>
+        <div class="field"><label>Full name</label><input name="shipName" value="${esc(user.name)}"><div class="error">Required.</div></div>
+        <div class="field"><label>Street address</label><input name="street" placeholder="123 Main St, Apt 4" value="${esc(user.address)}"><div class="error">Please enter your street address.</div></div>
         <div class="row">
-          <div class="field"><label>City</label><input name="shipCity"><div class="error">Required.</div></div>
-          <div class="field"><label>Postal code</label><input name="shipZip" value="${user.zip}"><div class="error">Invalid postal code.</div></div>
+          <div class="field"><label>City</label><input name="shipCity" value="${esc(user.city)}"><div class="error">Required.</div></div>
+          <div class="field"><label>Postal code</label><input name="shipZip" value="${esc(user.zip)}"><div class="error">Invalid postal code.</div></div>
         </div>
-        <div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="+1 555 123 4567" value="${user.phone}"><div class="error">Enter a valid phone number.</div></div>
+        <div class="field"><label>Phone</label><input name="phone" type="tel" placeholder="+1 555 123 4567" value="${esc(user.phone)}"><div class="error">Enter a valid phone number.</div></div>
 
         <h3>🔒 Secure payment method</h3>
         <div class="pay-tabs">
@@ -1077,27 +1171,40 @@ document.addEventListener("click", e => {
 $("search").addEventListener("input", renderGrid);
 $("sort").addEventListener("change", renderGrid);
 
-// ---------- Auth (Supabase) + 5-step sign-up wizard ----------
+// ---------- Auth (Supabase) + 8-step sign-up wizard (in isiZulu) ----------
 // The wizard below is only the UI. Every step is validated again on the
 // server by a Postgres function (db/schema.sql) that refuses to run unless
-// the previous step is done. Steps 1–3 happen before the account exists and
+// the previous step is done. Steps 1–4 happen before the account exists and
 // are tracked in a server-side "registration ticket"; the browser only keeps
-// its random token. Products / prices / orders stay locked by RLS until the
-// server marks the profile as completed, so editing this code in devtools
-// cannot unlock the shop.
-const STEP_NAMES = ["Riddle", "Verification", "Your interests", "Your account", "Terms & conditions"];
+// its random token. Steps 5–8 are stored on the user's profile. Products /
+// prices / orders stay locked by RLS until the server marks the profile as
+// completed, so editing this code in devtools cannot unlock the shop.
+const STEP_NAMES = ["Imfumbe", "Ukuqinisekisa", "Umdlalo wezithombe", "Okuthandayo",
+                    "I-akhawunti yakho", "Uvivinyo lwesibili", "Qinisekisa ukuthi nguwe", "Indaba nekheli"];
+const STEPS = STEP_NAMES.length;
+const STORY_MIN = 150;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\+?[0-9 ()-]{7,20}$/;
 const TICKET_KEY = "mm_reg_ticket";
-const PENDING_KEY = "mm_reg_pending";   // {name, phone} while waiting for email confirmation
-let ticket = null;                       // {token, question, riddle_ok, captcha_ok, survey_done}
+const PENDING_KEY = "mm_reg_pending";   // {name} while waiting for email confirmation
+let ticket = null;                       // {token, question, riddle_ok, captcha_ok, emoji_ok, survey_done}
 let wzStep = 1;
+let emojiPicks = new Set();
 
+// Account exists and steps 1–5 are done (profile has interests, name and terms).
+const claimed = () => !!(authUserId && wzProfile && wzProfile.looking_for && wzProfile.terms_accepted_at);
 function stepFor() {
-  // Account already exists and the ticket was claimed → only the terms are left.
-  if (authUserId && wzProfile && wzProfile.looking_for && wzProfile.name && wzProfile.phone) return 5;
+  if (claimed()) {
+    if (!wzProfile.phone_saved_at) return 6;
+    if (!wzProfile.identity_ok_at) return 7;
+    return 8;
+  }
+  if (authUserId && wzProfile && wzProfile.looking_for) return 5;   // older sign-up: name + terms missing
   if (!ticket || !ticket.riddle_ok) return 1;
   if (!ticket.captcha_ok) return 2;
-  if (!ticket.survey_done) return 3;
-  return 4;
+  if (!ticket.emoji_ok) return 3;
+  if (!ticket.survey_done) return 4;
+  return 5;
 }
 async function ensureTicket() {
   if (ticket) return;
@@ -1107,27 +1214,28 @@ async function ensureTicket() {
 function showStep(n) {
   wzStep = n;
   document.querySelectorAll(".wz-step").forEach(f => { f.hidden = +f.dataset.step !== n; });
-  $("wzBar").style.width = (n / 5 * 100) + "%";
-  $("wzLabel").textContent = `Step ${n} of 5 · ${STEP_NAMES[n - 1]}`;
+  $("wzBar").style.width = (n / STEPS * 100) + "%";
+  $("wzLabel").textContent = `Isinyathelo ${n} kwezi-${STEPS} · ${STEP_NAMES[n - 1]}`;
   $("wzLogout").hidden = !authUserId;
   document.querySelector(".auth-tabs").hidden = !!authUserId;
-  $("authTitle").textContent = authUserId ? "Finish your registration" : "Create your account";
+  $("authTitle").textContent = authUserId ? "Qedela ukubhalisa kwakho" : "Dala i-akhawunti yakho";
   $("authSub").textContent = authUserId
-    ? "A few more steps to unlock prices, product details and checkout."
-    : "Register to unlock prices, product details and checkout.";
-  if (n === 1) $("riddleQ").textContent = ticket?.question || "Loading riddle…";
+    ? "Kusele izinyathelo ezimbalwa ukuze uvule amanani, imininingwane yemikhiqizo nokuthenga."
+    : "Bhalisa ukuze ubone amanani, imininingwane yemikhiqizo futhi ukwazi ukuthenga.";
+  if (n === 1) $("riddleQ").textContent = ticket?.question || "Ilayisha imfumbe…";
   if (n === 2) loadCaptcha();
-  if (n === 4) {
+  if (n === 3) loadEmojiGrid();
+  if (n === 5) {
     $("acctFields").hidden = !!authUserId;          // signed-in users already have email + password
-    $("acctBtn").textContent = authUserId ? "Save and continue" : "Create my account";
-    const f = $("wz4");
+    $("acctBtn").textContent = authUserId ? "Londoloza uqhubeke" : "Dala i-akhawunti yami";
+    const f = $("wz5");
     if (!f.name.value && wzProfile?.name && wzProfile.name !== "Member") f.name.value = wzProfile.name;
-    if (!f.phone.value && wzProfile?.phone) f.phone.value = wzProfile.phone;
   }
-  document.querySelector(`.wz-step[data-step="${n}"] input:not([type=radio]):not([disabled])`)?.focus();
+  if (n === 6) loadCount();
+  document.querySelector(`.wz-step[data-step="${n}"] input:not([type=radio]):not([type=hidden]):not([disabled]), .wz-step[data-step="${n}"] textarea`)?.focus();
 }
 async function showWizard() {
-  try { if (stepFor() !== 5) await ensureTicket(); } catch { return; }
+  try { if (!(authUserId && wzProfile?.looking_for)) await ensureTicket(); } catch { return; }
   showStep(stepFor());
 }
 function setAuthMode(mode) {
@@ -1138,8 +1246,8 @@ function setAuthMode(mode) {
   if (reg) showWizard();
   else {
     document.querySelector(".auth-tabs").hidden = false;
-    $("authTitle").textContent = "Welcome back";
-    $("authSub").textContent = "Log in to see prices and your orders.";
+    $("authTitle").textContent = "Wamukelekile futhi";
+    $("authSub").textContent = "Ngena ukuze ubone amanani nama-oda akho.";
   }
 }
 function openAuth(mode) { setAuthMode(mode || "register"); open("registerOverlay"); }
@@ -1152,8 +1260,15 @@ function validate(form, checks) {
     el.classList.toggle("invalid", !checks[k]);
     if (!checks[k]) ok = false;
   }
-  if (!ok) form.querySelector(".invalid input:not([type=radio]), .invalid select")?.focus();
+  if (!ok) form.querySelector(".invalid input:not([type=radio]):not([type=hidden]), .invalid select, .invalid textarea")?.focus();
   return ok;
+}
+// Shows a specific error message under one field.
+function markInvalid(form, name, msg) {
+  const field = form.querySelector(`[name="${name}"]`).closest(".field");
+  if (msg) field.querySelector(".error").textContent = msg;
+  field.classList.add("invalid");
+  form.querySelector(`[name="${name}"]`).focus();
 }
 async function rpc(fn, args) {
   if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); throw new Error("no backend"); }
@@ -1161,7 +1276,7 @@ async function rpc(fn, args) {
   if (error) {
     toast(error.message);
     // Expired / unknown ticket → start over with a fresh one.
-    if (/registration session expired/i.test(error.message)) { ticket = null; save(TICKET_KEY, null); showWizard(); }
+    if (/Isikhathi sokubhalisa siphelile/i.test(error.message)) { ticket = null; save(TICKET_KEY, null); showWizard(); }
     throw error;
   }
   return data;
@@ -1173,15 +1288,15 @@ async function withBusy(btn, label, work) {
 }
 
 // Signed-in user whose ticket was not claimed yet (e.g. confirmed the
-// email and logged in): finish step 4 automatically if we can.
+// email and logged in): finish step 5 automatically if we can.
 async function tryPendingClaim() {
   const pending = load(PENDING_KEY, null);
   const token = load(TICKET_KEY, null);
-  if (!pending || !token || (wzProfile && wzProfile.looking_for)) return;
-  const { error } = await sb.rpc("claim_registration", { p_token: token, p_name: pending.name, p_phone: pending.phone });
+  if (!pending || !token || claimed()) return;
+  const { error } = await sb.rpc("claim_registration", { p_token: token, p_name: pending.name, p_accept: true });
   if (!error) {
     save(PENDING_KEY, null); save(TICKET_KEY, null); ticket = null;
-    wzProfile = { ...wzProfile, looking_for: true, name: pending.name, phone: pending.phone };
+    wzProfile = { ...wzProfile, looking_for: true, name: pending.name, terms_accepted_at: new Date().toISOString() };
   }
 }
 
@@ -1195,11 +1310,12 @@ async function afterAuth() {
   }
   await Promise.all([loadProducts(), loadUiText()]);
   close("registerOverlay");
-  ["wz1", "wz2", "wz3", "wz4", "wz5"].forEach(id => $(id).reset());
+  ["wz1", "wz2", "wz3", "wz4", "wz5", "wz6", "wz7", "wz8"].forEach(id => $(id).reset());
   $("recsBox").hidden = true; $("surveyBtn").hidden = false;
+  $("storyCount").textContent = `0 / ${STORY_MIN}`;
   renderHeader(); renderGrid();
   window.scrollTo({ top: 0, behavior: "smooth" });
-  toast(`Welcome, ${user.name.split(" ")[0]}! Prices are now unlocked.`);
+  toast(`Siyakwamukela, ${user.name.split(" ")[0]}! Amanani manje avuliwe.`);
   if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
 }
 async function logout() {
@@ -1233,25 +1349,24 @@ $("wz1").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
   const answer = f.riddle.value.trim();
-  $("riddleErr").textContent = "Please type your answer.";
+  $("riddleErr").textContent = "Sicela ubhale impendulo yakho.";
   if (!validate(f, { riddle: answer.length > 0 })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Checking…", async () => {
+  await withBusy(f.querySelector("[type=submit]"), "Iyahlola…", async () => {
     const res = await rpc("answer_riddle", { p_token: ticket.token, p_answer: answer });
     if (res.status === "ok") { ticket.riddle_ok = true; f.reset(); showStep(2); return; }
     if (res.status === "new") {
       ticket.question = res.question;
       $("riddleQ").textContent = res.question;
       f.reset();
-      toast("Too many tries — here's a different riddle.");
+      toast("Imizamo miningi kakhulu — nansi enye imfumbe.");
       return;
     }
-    $("riddleErr").textContent = "Not quite. Think again!";
-    f.riddle.closest(".field").classList.add("invalid");
+    markInvalid(f, "riddle", "Akunjalo. Cabanga futhi!");
     f.riddle.select();
   });
 });
 
-// Step 2 — captcha (image generated and checked on the server)
+// Step 2 — number captcha (image generated and checked on the server)
 async function loadCaptcha() {
   const img = $("captchaImg");
   img.removeAttribute("src");
@@ -1266,93 +1381,206 @@ $("wz2").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
   const answer = f.captcha.value.trim();
-  $("captchaErr").textContent = "Please type the 5 numbers.";
+  $("captchaErr").textContent = "Sicela ubhale izinombolo ezi-5.";
   if (!validate(f, { captcha: /^\d{5}$/.test(answer) })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Checking…", async () => {
+  await withBusy(f.querySelector("[type=submit]"), "Iyahlola…", async () => {
     const res = await rpc("verify_captcha", { p_token: ticket.token, p_answer: answer });
     if (res === "ok") { ticket.captcha_ok = true; showStep(3); return; }
     if (res === "expired") {
-      toast("That image expired. Here is a new one.");
+      toast("Leso sithombe siphelelwe yisikhathi. Nasi esisha.");
       await loadCaptcha();
       return;
     }
-    $("captchaErr").textContent = "Those numbers don't match. Try again.";
-    f.captcha.closest(".field").classList.add("invalid");
+    markInvalid(f, "captcha", "Lezo zinombolo azifani. Zama futhi.");
     f.captcha.select();
   });
 });
 
-// Step 3 — survey + recommendations
-$("wz3").addEventListener("change", () => { $("recsBox").hidden = true; $("surveyBtn").hidden = false; });
+// Step 3 — emoji picture game (correct pictures known only by the server)
+async function loadEmojiGrid() {
+  emojiPicks = new Set();
+  $("emojiGrid").innerHTML = "";
+  $("emojiPrompt").textContent = "Ilayisha…";
+  try {
+    const g = await rpc("new_emoji_grid", { p_token: ticket.token });
+    $("emojiPrompt").textContent = g.prompt;
+    $("emojiGrid").innerHTML = g.items.map((e, i) =>
+      `<button type="button" class="emoji-cell" data-i="${i}" aria-pressed="false">${e}</button>`).join("");
+  } catch {}
+}
+$("emojiGrid").addEventListener("click", e => {
+  const b = e.target.closest(".emoji-cell");
+  if (!b) return;
+  const i = +b.dataset.i;
+  if (emojiPicks.has(i)) emojiPicks.delete(i); else emojiPicks.add(i);
+  b.classList.toggle("on", emojiPicks.has(i));
+  b.setAttribute("aria-pressed", emojiPicks.has(i));
+  b.closest(".field").classList.remove("invalid");
+});
+$("emojiNew").addEventListener("click", loadEmojiGrid);
 $("wz3").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
+  $("emojiErr").textContent = "Khetha okungenani isithombe esisodwa.";
+  if (!validate(f, { emoji: emojiPicks.size > 0 })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Iyahlola…", async () => {
+    const res = await rpc("verify_emoji_grid", { p_token: ticket.token, p_picks: [...emojiPicks] });
+    if (res === "ok") { ticket.emoji_ok = true; showStep(4); return; }
+    toast(res === "expired"
+      ? "Lezi zithombe ziphelelwe yisikhathi. Nazi ezintsha."
+      : "Akulungile. Zama futhi ngezithombe ezintsha.");
+    await loadEmojiGrid();
+  });
+});
+
+// Step 4 — interests, budget, age + recommendations
+$("wz4").addEventListener("change", () => { $("recsBox").hidden = true; $("surveyBtn").hidden = false; });
+$("wz4").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
   const looking = f.querySelector("[name=looking]:checked")?.value || "";
-  if (!validate(f, { looking: !!looking, budget: !!f.budget.value, profession: !!f.profession.value })) return;
-  await withBusy($("surveyBtn"), "Finding pieces for you…", async () => {
-    const recs = await rpc("save_survey", { p_token: ticket.token, p_looking_for: looking, p_budget: f.budget.value, p_profession: f.profession.value });
+  const age = Number(f.age.value);
+  if (!validate(f, { looking: !!looking, budget: !!f.budget.value,
+                     age: Number.isInteger(age) && age >= 13 && age <= 120 })) return;
+  await withBusy($("surveyBtn"), "Ifuna izinto zakho…", async () => {
+    const recs = await rpc("save_survey", { p_token: ticket.token, p_looking_for: looking, p_budget: f.budget.value, p_age: age });
     ticket.survey_done = true;
     $("recs").innerHTML = (recs || []).length
-      ? recs.map(r => `<div class="rec"><div class="ic" style="background:${r.bg}">${r.icon}</div><b>${r.name}</b></div>`).join("")
-      : `<p class="sub" style="grid-column:1/-1">We'll show you great picks as soon as you're in.</p>`;
+      ? recs.map(r => `<div class="rec"><div class="ic" style="background:${r.bg}">${r.icon}</div><b>${esc(r.name)}</b></div>`).join("")
+      : `<p class="sub" style="grid-column:1/-1">Sizokukhombisa izinto ezinhle uma usungenile.</p>`;
     $("surveyBtn").hidden = true;
     $("recsBox").hidden = false;
     $("recsNext").focus();
   });
 });
-$("recsNext").addEventListener("click", () => showStep(4));
+$("recsNext").addEventListener("click", () => showStep(5));
 
-// Step 4 — name, phone + email, password (creates the account)
-async function claim(name, phone) {
-  await rpc("claim_registration", { p_token: ticket.token, p_name: name, p_phone: phone });
+// Step 5 — name + email, password (creates the account) + terms
+async function claim(name) {
+  await rpc("claim_registration", { p_token: ticket?.token || load(TICKET_KEY, null), p_name: name, p_accept: true });
   save(TICKET_KEY, null); save(PENDING_KEY, null); ticket = null;
-  wzProfile = { ...wzProfile, looking_for: true, name, phone };
-  showStep(5);
+  wzProfile = { ...wzProfile, looking_for: wzProfile?.looking_for || true, name, terms_accepted_at: new Date().toISOString() };
+  showStep(6);
 }
-$("wz4").addEventListener("submit", async e => {
+$("termsLink").addEventListener("click", () => { $("terms").disabled = false; $("termsHint").hidden = true; });
+$("wz5").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
-  const name = f.name.value.trim(), phone = f.phone.value.trim(), email = f.regEmail.value.trim();
-  const checks = { name: name.length >= 2, phone: /^\+?[0-9 ()-]{7,20}$/.test(phone) };
+  const name = f.name.value.trim(), email = f.regEmail.value.trim();
+  const checks = { name: name.length >= 2, terms: f.terms.checked };
   if (!authUserId) Object.assign(checks, {
-    regEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email),
+    regEmail: EMAIL_RE.test(email),
     regPassword: f.regPassword.value.length >= 6,
     regPassword2: f.regPassword2.value.length >= 6 && f.regPassword2.value === f.regPassword.value,
   });
   if (!validate(f, checks)) return;
-  await withBusy($("acctBtn"), authUserId ? "Saving…" : "Creating account…", async () => {
+  await withBusy($("acctBtn"), authUserId ? "Iyalondoloza…" : "Idala i-akhawunti…", async () => {
     if (!authUserId) {
       if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
       const { data, error } = await sb.auth.signUp({ email, password: f.regPassword.value });
       if (error) {
         if (/registered|exists/i.test(error.message)) {
-          save(PENDING_KEY, { name, phone });
-          toast("This email already has an account. Log in to continue.");
+          save(PENDING_KEY, { name });
+          toast("Le imeyili isivele ine-akhawunti. Ngena ukuze uqhubeke.");
           setAuthMode("login"); $("logEmail").value = email;
         } else toast(error.message);
         return;
       }
       if (!data.session) {
-        save(PENDING_KEY, { name, phone });
-        toast("Check your email to confirm your account, then log in to finish.");
+        save(PENDING_KEY, { name });
+        toast("Hlola i-imeyili yakho ukuze uqinisekise i-akhawunti, bese ungena ukuze uqedele.");
         setAuthMode("login"); $("logEmail").value = email;
         return;
       }
       authUserId = data.user.id; wzProfile = {};
       renderHeader();
     }
-    await claim(name, phone);
+    await claim(name);
   });
 });
 
-// Step 5 — terms and conditions
-$("termsLink").addEventListener("click", () => { $("terms").disabled = false; $("termsHint").hidden = true; });
-$("wz5").addEventListener("submit", async e => {
+// Step 6 — counting captcha + phone number
+async function loadCount() {
+  const f = $("wz6"), img = $("countImg");
+  img.removeAttribute("src");
+  f.count.value = "";
+  $("countPrompt").textContent = "Ilayisha…";
+  if (!f.phone.value && wzProfile?.phone) f.phone.value = wzProfile.phone;
+  try {
+    const c = await rpc("new_count_captcha", {});
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(c.svg);
+    $("countPrompt").textContent = c.prompt;
+  } catch {}
+}
+$("countRefresh").addEventListener("click", loadCount);
+$("wz6").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
-  if (!validate(f, { terms: f.terms.checked })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Finishing…", async () => {
-    await rpc("complete_registration", { p_accept: true });
+  const answer = f.count.value.trim(), phone = f.phone.value.trim();
+  $("countErr").textContent = "Sicela ubhale inombolo.";
+  if (!validate(f, { count: /^\d{1,2}$/.test(answer), phone: PHONE_RE.test(phone) })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Iyahlola…", async () => {
+    const res = await rpc("save_phone", { p_answer: answer, p_phone: phone });
+    if (res === "ok") {
+      wzProfile = { ...wzProfile, phone, phone_saved_at: new Date().toISOString(), identity_ok_at: null };
+      showStep(7);
+      return;
+    }
+    if (res === "expired") {
+      toast("Leso sithombe siphelelwe yisikhathi. Nasi esisha.");
+      await loadCount();
+      return;
+    }
+    markInvalid(f, "count", "Akulungile. Bala futhi.");
+    f.count.select();
+  });
+});
+
+// Step 7 — same person check: phone, email and password again.
+// The password is checked by signing in again; the server then verifies
+// that fresh sign-in (JWT "amr" claim) and that the phone matches.
+$("wz7").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
+  const phone = f.phone2.value.trim(), email = f.email2.value.trim().toLowerCase(), pass = f.password3.value;
+  $("phone2Err").textContent = "Sicela ufake inombolo yocingo evumelekile.";
+  $("email2Err").textContent = "Sicela ufake i-imeyili evumelekile.";
+  $("pass3Err").textContent = "Sicela ufake iphasiwedi yakho.";
+  if (!validate(f, { phone2: PHONE_RE.test(phone), email2: EMAIL_RE.test(email), password3: pass.length > 0 })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Iyaqinisekisa…", async () => {
+    const { data: { user: me } } = await sb.auth.getUser();
+    if (!me || (me.email || "").toLowerCase() !== email) {
+      markInvalid(f, "email2", "Le imeyili akuyona eye-akhawunti yakho.");
+      return;
+    }
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { markInvalid(f, "password3", "Iphasiwedi ayilungile."); f.password3.value = ""; return; }
+    try {
+      await rpc("confirm_identity", { p_phone: phone });
+    } catch (err) {
+      if (/ocingo/i.test(err.message || "")) markInvalid(f, "phone2", err.message);
+      return;
+    }
+    wzProfile = { ...wzProfile, identity_ok_at: new Date().toISOString() };
+    f.reset();
+    showStep(8);
+  });
+});
+
+// Step 8 — short story about a magician + shipping address
+$("story").addEventListener("input", () => {
+  const n = $("story").value.trim().length;
+  $("storyCount").textContent = `${n} / ${STORY_MIN}`;
+  $("storyCount").classList.toggle("ok", n >= STORY_MIN);
+});
+$("wz8").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target;
+  const story = f.story.value.trim(), street = f.street.value.trim(), city = f.city.value.trim(), zip = f.zip.value.trim();
+  if (!validate(f, { story: story.length >= STORY_MIN, street: street.length >= 5, city: city.length >= 2,
+                     zip: /^[A-Za-z0-9 -]{3,10}$/.test(zip) })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Iyaqeda…", async () => {
+    await rpc("complete_registration", { p_story: story, p_address: street, p_city: city, p_zip: zip });
     await afterAuth();
   });
 });
@@ -1361,14 +1589,14 @@ $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
   const f = e.target;
-  if (!validate(f, { logEmail: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Logging in…", async () => {
+  if (!validate(f, { logEmail: EMAIL_RE.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 })) return;
+  await withBusy(f.querySelector("[type=submit]"), "Iyangena…", async () => {
     const { data, error } = await sb.auth.signInWithPassword({ email: f.logEmail.value.trim(), password: f.logPassword.value });
-    if (error) { toast(error.message); return; }
+    if (error) { toast("I-imeyili noma iphasiwedi ayilungile."); return; }
     authUserId = data.user.id;
     f.reset();
     await afterAuth();
-    if (!user) toast("Finish your registration to unlock prices.");
+    if (!user) toast("Qedela ukubhalisa kwakho ukuze uvule amanani.");
   });
 });
 

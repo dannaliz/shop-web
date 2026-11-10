@@ -6,16 +6,21 @@
 -- ============================================================
 --
 --  HOW THE SIGN-UP WIZARD IS ENFORCED
---  The browser shows a 5-step wizard, but the browser can be
---  tampered with (inspect / console). So every step is checked
---  HERE, on the server:
---    1. Riddle             → start_registration() / answer_riddle()
---    2. Captcha            → new_captcha() / verify_captcha()
---    3. Survey             → save_survey()
---       (steps 1–3 are tracked in a registration ticket, before
+--  The browser shows an 8-step wizard (in isiZulu), but the browser
+--  can be tampered with (inspect / console). So every step is
+--  checked HERE, on the server:
+--    1. Riddle               → start_registration() / answer_riddle()
+--    2. Number captcha       → new_captcha() / verify_captcha()
+--    3. Emoji picture game   → new_emoji_grid() / verify_emoji_grid()
+--    4. Interests + age      → save_survey()
+--       (steps 1–4 are tracked in a registration ticket, before
 --        the account exists)
---    4. Email, password, name, phone → Supabase Auth + claim_registration()
---    5. Terms accepted     → complete_registration()
+--    5. Name, email, password, terms → Supabase Auth + claim_registration()
+--    6. Counting captcha + phone     → new_count_captcha() / save_phone()
+--    7. Re-type phone, email and password (fresh password sign-in
+--       is required, checked through the JWT "amr" claim)
+--                                    → confirm_identity()
+--    8. Short story + shipping address → complete_registration()
 --  Each function refuses to run if the previous step is missing,
 --  and users cannot write to their profile directly. Products,
 --  prices, UI text and new orders are only available once
@@ -40,7 +45,11 @@ alter table public.profiles
   add column if not exists budget            text,
   add column if not exists profession        text,
   add column if not exists terms_accepted_at timestamptz,
-  add column if not exists completed         boolean not null default false;
+  add column if not exists completed         boolean not null default false,
+  add column if not exists age               int,
+  add column if not exists phone_saved_at    timestamptz,
+  add column if not exists identity_ok_at    timestamptz,
+  add column if not exists story             text;
 
 alter table public.profiles enable row level security;
 
@@ -52,7 +61,7 @@ drop policy if exists "own profile update" on public.profiles;
 create policy "own profile read" on public.profiles for select to authenticated using (auth.uid() = id);
 revoke insert, update, delete on public.profiles from anon, authenticated;
 
--- TRUE only when the signed-in user finished all 5 steps.
+-- TRUE only when the signed-in user finished all 8 steps.
 create or replace function public.is_registered()
 returns boolean language sql stable security definer set search_path = public as $$
   select coalesce((select completed from public.profiles where id = auth.uid()), false);
@@ -121,16 +130,20 @@ create policy "ui_text readable by registered"
   using (public.is_registered());
 
 -- 5) REGISTRATION TICKETS -------------------------------------
--- Steps 1–3 happen BEFORE the account exists, so their progress is
+-- Steps 1–4 happen BEFORE the account exists, so their progress is
 -- kept in a server-side "ticket" identified by a random token. The
--- browser only holds the token; riddle answers, the captcha answer
+-- browser only holds the token; riddle answers, captcha answers
 -- and the step flags never leave the server.
+-- Error messages are in isiZulu, like the wizard.
 
--- Old version of the wizard (account first) — remove it.
+-- Older versions of the wizard — remove them (signatures changed).
 drop function if exists public.new_captcha();
 drop function if exists public.verify_captcha(text);
 drop function if exists public.save_survey(text, text, text);
 drop function if exists public.save_details(text, text, text, text);
+drop function if exists public.save_survey(uuid, text, text, text);
+drop function if exists public.claim_registration(uuid, text, text);
+drop function if exists public.complete_registration(boolean);
 drop table if exists public.captchas;
 
 create table if not exists public.riddles (
@@ -141,15 +154,16 @@ create table if not exists public.riddles (
 alter table public.riddles enable row level security;
 revoke all on public.riddles from anon, authenticated;
 
+-- Questions in isiZulu; answers accepted in isiZulu, English or Spanish.
 insert into public.riddles (id, question, answers) values
-  (1, 'What has keys but can''t open a single lock?',                                        array['piano','keyboard']),
-  (2, 'What has hands but can''t clap?',                                                      array['clock','watch','reloj']),
-  (3, 'What gets wetter the more it dries?',                                                  array['towel','toalla']),
-  (4, 'What has a neck but no head?',                                                         array['bottle','botella']),
-  (5, 'What can you catch but not throw?',                                                    array['cold','resfriado','gripe','catarro']),
-  (6, 'What has to be broken before you can use it?',                                         array['egg','huevo']),
-  (7, 'I have cities but no houses, forests but no trees, and water but no fish. What am I?', array['map','mapa']),
-  (8, 'What goes up but never comes down?',                                                   array['age','edad'])
+  (1, 'Yini enokhiye abaningi kodwa engakwazi ukuvula ngisho ingidi elilodwa?',                                   array['piano','keyboard','upiyano','ipiyano','ikhibhodi','teclado']),
+  (2, 'Yini enezandla kodwa engakwazi ukushaya ihlombe?',                                                        array['clock','watch','reloj','iwashi']),
+  (3, 'Yini eya ngokuba manzi kakhulu lapho yomisa?',                                                            array['towel','toalla','ithawula','ithawuli']),
+  (4, 'Yini enentamo kodwa engenalo ikhanda?',                                                                   array['bottle','botella','ibhodlela']),
+  (5, 'Yini ongayibamba kodwa ungakwazi ukuyiphonsa?',                                                           array['cold','resfriado','gripe','catarro','umkhuhlane','imfiva']),
+  (6, 'Yini okumele iphulwe ngaphambi kokuthi uyisebenzise?',                                                    array['egg','huevo','iqanda']),
+  (7, 'Nginamadolobha kodwa anginazindlu, nginamahlathi kodwa anginazihlahla, nginamanzi kodwa anginazinhlanzi. Ngingubani?', array['map','mapa','ibalazwe','imephu']),
+  (8, 'Yini ehlala ikhuphuka kodwa ingehli neze?',                                                               array['age','edad','iminyaka','ubudala'])
 on conflict (id) do update set question = excluded.question, answers = excluded.answers;
 
 -- "A Piano!" → "piano", "La Toalla" → "toalla", "Él reloj" → "reloj"
@@ -177,6 +191,12 @@ create table if not exists public.registration_tickets (
   claimed_by       uuid references auth.users(id) on delete cascade,
   created_at       timestamptz not null default now()
 );
+alter table public.registration_tickets
+  add column if not exists emoji_answer   int[],
+  add column if not exists emoji_expires  timestamptz,
+  add column if not exists emoji_attempts int     not null default 0,
+  add column if not exists emoji_ok       boolean not null default false,
+  add column if not exists age            int;
 alter table public.registration_tickets enable row level security;
 revoke all on public.registration_tickets from anon, authenticated;
 
@@ -188,7 +208,7 @@ begin
   select * into t from public.registration_tickets
    where token = p_token and claimed_by is null and created_at > now() - interval '1 day'
    for update;
-  if not found then raise exception 'Your registration session expired. Please reload the page and start again.'; end if;
+  if not found then raise exception 'Isikhathi sokubhalisa siphelile. Sicela uvuselele ikhasi bese uqala kabusha.'; end if;
   return t;
 end $$;
 
@@ -211,7 +231,8 @@ begin
   end if;
   select question into q from public.riddles where id = t.riddle_id;
   return jsonb_build_object('token', t.token, 'question', q, 'riddle_ok', t.riddle_ok,
-                            'captcha_ok', t.captcha_ok, 'survey_done', t.looking_for is not null);
+                            'captcha_ok', t.captcha_ok, 'emoji_ok', t.emoji_ok,
+                            'survey_done', t.looking_for is not null and t.age is not null);
 end $$;
 
 -- Swaps the riddle for a different one (only before it is solved).
@@ -220,7 +241,7 @@ returns text language plpgsql volatile security definer set search_path = public
 declare t public.registration_tickets%rowtype; q text;
 begin
   t := public._ticket(p_token);
-  if t.riddle_ok then raise exception 'The riddle is already solved.'; end if;
+  if t.riddle_ok then raise exception 'Imfumbe isivele ixazululiwe.'; end if;
   select id, question into t.riddle_id, q from public.riddles where id <> coalesce(t.riddle_id, 0) order by random() limit 1;
   update public.registration_tickets set riddle_id = t.riddle_id, riddle_attempts = 0 where token = p_token;
   return q;
@@ -261,7 +282,7 @@ declare
   x1 numeric; y1 numeric; x2 numeric; y2 numeric;
 begin
   t := public._ticket(p_token);
-  if not t.riddle_ok then raise exception 'Please solve the riddle first.'; end if;
+  if not t.riddle_ok then raise exception 'Sicela uxazulule imfumbe kuqala.'; end if;
 
   svg := '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="70" viewBox="0 0 200 70"><rect width="200" height="70" fill="#f3ede4"/>';
   for i in 1..35 loop
@@ -323,8 +344,65 @@ begin
   return 'wrong';
 end $$;
 
--- STEP 3: survey. Returns up to 4 recommended products (no prices).
-create or replace function public.save_survey(p_token uuid, p_looking_for text, p_budget text, p_profession text)
+-- STEP 3: emoji picture game. 9 pictures, 3–4 of them belong to the
+-- requested group (fruits / animals / vehicles). The correct positions
+-- stay on the server. Returns {prompt, items[9]}.
+create or replace function public.new_emoji_grid(p_token uuid)
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  t       public.registration_tickets%rowtype;
+  cats    text[] := array['fruit','animal','transport'];
+  pool    jsonb := '{"fruit":["🍎","🍌","🍇","🍓","🍍","🍉","🍒","🍋","🥝","🍑"],
+                     "animal":["🐘","🦒","🐄","🐕","🐈","🦁","🐒","🐑","🐓","🦓"],
+                     "transport":["🚗","🚌","🚲","✈️","🚂","🚢","🏍️","🚁","🚕","🛵"]}';
+  prompts jsonb := '{"fruit":"Chofoza zonke izithelo.","animal":"Chofoza zonke izilwane.","transport":"Chofoza zonke izinto zokuhamba."}';
+  c       text;
+  k       int;
+  items   text[];
+  ans     int[];
+begin
+  t := public._ticket(p_token);
+  if not t.captcha_ok then raise exception 'Sicela uqedele ukuqinisekisa kuqala.'; end if;
+  if t.emoji_ok then raise exception 'Lolu vivinyo selwenziwe.'; end if;
+
+  c := cats[1 + floor(random()*3)::int];
+  k := 3 + floor(random()*2)::int;
+  with good as (select e, true as ok from jsonb_array_elements_text(pool -> c) e order by random() limit k),
+       bad  as (select e, false as ok
+                  from (select jsonb_array_elements_text(pool -> x) e from unnest(cats) x where x <> c) s
+                 order by random() limit (9 - k)),
+       allx as (select e, ok, (row_number() over (order by random()) - 1)::int as i
+                  from (select * from good union all select * from bad) u)
+  select array_agg(e order by i), array_agg(i order by i) filter (where ok)
+    into items, ans from allx;
+
+  update public.registration_tickets
+     set emoji_answer = ans, emoji_attempts = 0, emoji_expires = now() + interval '10 minutes'
+   where token = p_token;
+  return jsonb_build_object('prompt', prompts ->> c, 'items', to_jsonb(items));
+end $$;
+
+-- Returns 'ok', 'wrong' or 'expired' (10 min / 3 wrong tries).
+create or replace function public.verify_emoji_grid(p_token uuid, p_picks int[])
+returns text language plpgsql volatile security definer set search_path = public as $$
+declare t public.registration_tickets%rowtype;
+begin
+  t := public._ticket(p_token);
+  if t.emoji_ok then return 'ok'; end if;
+  if t.emoji_answer is null or t.emoji_expires < now() or t.emoji_attempts >= 3 then
+    update public.registration_tickets set emoji_answer = null where token = p_token;
+    return 'expired';
+  end if;
+  if (select array_agg(distinct x order by x) from unnest(coalesce(p_picks, '{}')) x) = t.emoji_answer then
+    update public.registration_tickets set emoji_ok = true, emoji_answer = null where token = p_token;
+    return 'ok';
+  end if;
+  update public.registration_tickets set emoji_attempts = emoji_attempts + 1 where token = p_token;
+  return 'wrong';
+end $$;
+
+-- STEP 4: interests, budget and age. Returns up to 4 recommended products (no prices).
+create or replace function public.save_survey(p_token uuid, p_looking_for text, p_budget text, p_age int)
 returns jsonb language plpgsql volatile security definer set search_path = public as $$
 declare
   t      public.registration_tickets%rowtype;
@@ -332,18 +410,18 @@ declare
   res    jsonb;
 begin
   t := public._ticket(p_token);
-  if not t.captcha_ok then raise exception 'Please complete the verification step first.'; end if;
+  if not t.emoji_ok then raise exception 'Sicela uqedele umdlalo wezithombe kuqala.'; end if;
   if p_looking_for is null or p_looking_for not in ('clothing','objects','shoes','paintings','everything') then
-    raise exception 'Please choose what you are looking for.';
+    raise exception 'Sicela ukhethe ukuthi ufunani.';
   end if;
   target := case p_budget when 'under50' then 35 when '50to100' then 75 when '100to250' then 175 when 'over250' then 400 end;
-  if target is null then raise exception 'Please choose your budget.'; end if;
-  if length(trim(coalesce(p_profession, ''))) not between 2 and 60 then
-    raise exception 'Please choose your profession.';
+  if target is null then raise exception 'Sicela ukhethe isabelomali sakho.'; end if;
+  if p_age is null or p_age not between 13 and 120 then
+    raise exception 'Sicela ufake iminyaka yakho (13–120).';
   end if;
 
   update public.registration_tickets
-     set looking_for = p_looking_for, budget = p_budget, profession = trim(p_profession)
+     set looking_for = p_looking_for, budget = p_budget, age = p_age
    where token = p_token;
 
   select coalesce(jsonb_agg(jsonb_build_object('name', x.name, 'icon', x.icon, 'bg', x.bg, 'category', x.category)), '[]'::jsonb)
@@ -356,66 +434,214 @@ begin
   return res;
 end $$;
 
--- STEP 4: called right after the account is created (email + password).
--- Moves the ticket's progress onto the new user's profile.
-create or replace function public.claim_registration(p_token uuid, p_name text, p_phone text)
+-- STEP 5: called right after the account is created (name, email,
+-- password, terms). Moves the ticket's progress onto the new profile.
+-- Accounts from the older wizard (already have a profile) only need
+-- the name and the terms.
+create or replace function public.claim_registration(p_token uuid, p_name text, p_accept boolean)
 returns void language plpgsql volatile security definer set search_path = public as $$
 declare
   uid uuid := auth.uid();
   t   public.registration_tickets%rowtype;
 begin
-  if uid is null then raise exception 'Please create your account first.'; end if;
-  t := public._ticket(p_token);
-  if not t.riddle_ok or not t.captcha_ok or t.looking_for is null then
-    raise exception 'Please complete the previous steps first.';
-  end if;
-  if length(trim(coalesce(p_name, ''))) not between 2 and 80 then raise exception 'Please enter your full name.'; end if;
-  if coalesce(trim(p_phone), '') !~ '^\+?[0-9 ()-]{7,20}$' then raise exception 'Please enter a valid phone number.'; end if;
+  if uid is null then raise exception 'Sicela udale i-akhawunti yakho kuqala.'; end if;
+  if length(trim(coalesce(p_name, ''))) not between 2 and 80 then raise exception 'Sicela ufake igama lakho eliphelele.'; end if;
+  if p_accept is not true then raise exception 'Kumele wamukele Imigomo Nemibandela.'; end if;
 
-  insert into public.profiles (id, name, phone, captcha_ok, looking_for, budget, profession)
-  values (uid, trim(p_name), trim(p_phone), true, t.looking_for, t.budget, t.profession)
+  if exists (select 1 from public.profiles where id = uid and looking_for is not null) then
+    update public.profiles set name = trim(p_name), terms_accepted_at = coalesce(terms_accepted_at, now()) where id = uid;
+    return;
+  end if;
+
+  t := public._ticket(p_token);
+  if not t.riddle_ok or not t.captcha_ok or not t.emoji_ok or t.looking_for is null or t.age is null then
+    raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.';
+  end if;
+
+  insert into public.profiles (id, name, captcha_ok, looking_for, budget, age, terms_accepted_at)
+  values (uid, trim(p_name), true, t.looking_for, t.budget, t.age, now())
   on conflict (id) do update
-    set name = excluded.name, phone = excluded.phone, captcha_ok = true,
-        looking_for = excluded.looking_for, budget = excluded.budget, profession = excluded.profession;
+    set name = excluded.name, captcha_ok = true, looking_for = excluded.looking_for,
+        budget = excluded.budget, age = excluded.age, terms_accepted_at = excluded.terms_accepted_at;
 
   update public.registration_tickets set claimed_by = uid where token = p_token;
 end $$;
 
--- STEP 5: accept the terms → account becomes fully registered.
-create or replace function public.complete_registration(p_accept boolean)
-returns void language plpgsql volatile security definer set search_path = public as $$
+-- State of the step-6 counting captcha. Kept OUT of profiles because
+-- users can read their own profile (that would leak the answer).
+create table if not exists public.identity_checks (
+  id             uuid primary key references auth.users(id) on delete cascade,
+  count_answer   text,
+  count_expires  timestamptz,
+  count_attempts int     not null default 0,
+  count_ok       boolean not null default false
+);
+alter table public.identity_checks enable row level security;
+revoke all on public.identity_checks from anon, authenticated;
+
+create or replace function public._claimed_profile()
+returns public.profiles language plpgsql stable security definer set search_path = public as $$
+declare r public.profiles%rowtype;
+begin
+  select * into r from public.profiles where id = auth.uid();
+  if not found or r.looking_for is null or r.terms_accepted_at is null or r.name is null then
+    raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.';
+  end if;
+  return r;
+end $$;
+
+-- STEP 6a: counting captcha. Small animals scattered in an image:
+-- "how many of THIS one are there?". Returns {svg, prompt}.
+create or replace function public.new_count_captcha()
+returns jsonb language plpgsql volatile security definer set search_path = public as $$
+declare
+  uid     uuid := auth.uid();
+  r       public.profiles%rowtype;
+  animals text[] := array['🐘','🦒','🦊','🐢','🐙','🦉','🐝','🐳','🐸','🦋'];
+  target  text;
+  n int; m int; i int; cx int; cy int;
+  cells   int[];
+  e       text;
+  svg     text;
+begin
+  r := public._claimed_profile();
+  target := animals[1 + floor(random()*10)::int];
+  n := 3 + floor(random()*6)::int;     -- 3..8 of the target
+  m := 6 + floor(random()*5)::int;     -- 6..10 others
+  select array_agg(c) into cells from (select c from generate_series(0, 39) c order by random() limit n + m) s;
+
+  svg := '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="150" viewBox="0 0 300 150"><rect width="300" height="150" fill="#f3ede4"/>';
+  for i in 1..(n + m) loop
+    if i <= n then e := target;
+    else e := (select a from unnest(animals) a where a <> target order by random() limit 1);
+    end if;
+    cx := (cells[i] % 10) * 29 + 3 + floor(random()*6)::int;
+    cy := (cells[i] / 10) * 35 + 28 + floor(random()*6)::int;
+    svg := svg || format('<text x="%s" y="%s" font-size="%s" transform="rotate(%s %s %s)">%s</text>',
+      cx, cy, 17 + floor(random()*7)::int, floor(random()*50 - 25)::int, cx + 10, cy - 8, e);
+  end loop;
+  svg := svg || '</svg>';
+
+  insert into public.identity_checks (id, count_answer, count_expires, count_attempts)
+  values (uid, n::text, now() + interval '10 minutes', 0)
+  on conflict (id) do update
+    set count_answer = excluded.count_answer, count_expires = excluded.count_expires, count_attempts = 0;
+
+  return jsonb_build_object('svg', svg,
+    'prompt', format('Bala izithombe ezincane ezifana nalesi: %s — zingaki?', target));
+end $$;
+
+-- STEP 6b: checks the counting captcha and saves the phone number.
+-- Returns 'ok', 'wrong' or 'expired' (10 min / 5 wrong tries).
+create or replace function public.save_phone(p_answer text, p_phone text)
+returns text language plpgsql volatile security definer set search_path = public as $$
 declare
   uid uuid := auth.uid();
   r   public.profiles%rowtype;
+  c   public.identity_checks%rowtype;
 begin
-  select * into r from public.profiles where id = uid;
-  if not found or not r.captcha_ok or r.looking_for is null or r.name is null or r.phone is null then
-    raise exception 'Please complete the previous steps first.';
+  r := public._claimed_profile();
+  if coalesce(trim(p_phone), '') !~ '^\+?[0-9 ()-]{7,20}$' then
+    raise exception 'Sicela ufake inombolo yocingo evumelekile.';
   end if;
-  if p_accept is not true then raise exception 'You must accept the Terms and Conditions.'; end if;
 
-  update public.profiles set terms_accepted_at = now(), completed = true where id = uid;
+  select * into c from public.identity_checks where id = uid for update;
+  if not found or not c.count_ok then
+    if not found or c.count_answer is null or c.count_expires < now() or c.count_attempts >= 5 then
+      update public.identity_checks set count_answer = null where id = uid;
+      return 'expired';
+    end if;
+    if trim(coalesce(p_answer, '')) <> c.count_answer then
+      update public.identity_checks set count_attempts = count_attempts + 1 where id = uid;
+      return 'wrong';
+    end if;
+    update public.identity_checks set count_ok = true, count_answer = null where id = uid;
+  end if;
+
+  update public.profiles
+     set phone = trim(p_phone), phone_saved_at = now(), identity_ok_at = null
+   where id = uid;
+  return 'ok';
 end $$;
 
--- Permissions: steps 1–3 can be done before having an account (anon);
--- steps 4–5 need a signed-in user. Internal helpers are not callable.
+-- STEP 7: same person check. The phone must match the one saved in
+-- step 6, and the user must have signed in again WITH THE PASSWORD
+-- after step 6 (Supabase puts the sign-in method and time in the
+-- JWT "amr" claim), so it can't be skipped from the console.
+create or replace function public.confirm_identity(p_phone text)
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  r public.profiles%rowtype;
+begin
+  r := public._claimed_profile();
+  if r.phone_saved_at is null then raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.'; end if;
+  if regexp_replace(coalesce(p_phone, ''), '\D', '', 'g') <> regexp_replace(coalesce(r.phone, ''), '\D', '', 'g') then
+    raise exception 'Inombolo yocingo ayifani naleyo oyifake ngaphambili.';
+  end if;
+  if not exists (
+    select 1 from jsonb_array_elements(coalesce(auth.jwt() -> 'amr', '[]'::jsonb)) a
+     where a ->> 'method' = 'password'
+       and (a ->> 'timestamp')::bigint >= floor(extract(epoch from r.phone_saved_at))::bigint
+  ) then
+    raise exception 'Sicela uphinde ufake i-imeyili nephasiwedi yakho.';
+  end if;
+  update public.profiles set identity_ok_at = now() where id = r.id;
+end $$;
+
+-- STEP 8: short story + shipping address → account fully registered.
+-- The address only pre-fills the shipping form at checkout, where the
+-- user sees it and can change it (a temporary address is fine).
+create or replace function public.complete_registration(p_story text, p_address text, p_city text, p_zip text)
+returns void language plpgsql volatile security definer set search_path = public as $$
+declare
+  r public.profiles%rowtype;
+begin
+  r := public._claimed_profile();
+  if r.phone is null or r.identity_ok_at is null then
+    raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.';
+  end if;
+  if length(trim(coalesce(p_story, ''))) not between 150 and 3000 then
+    raise exception 'Indaba kumele ibe nezinhlamvu eziphakathi kuka-150 no-3000.';
+  end if;
+  if length(trim(coalesce(p_address, ''))) not between 5 and 150 then raise exception 'Sicela ufake umgwaqo nenombolo.'; end if;
+  if length(trim(coalesce(p_city, ''))) not between 2 and 80 then raise exception 'Sicela ufake idolobha.'; end if;
+  if coalesce(trim(p_zip), '') !~ '^[A-Za-z0-9 -]{3,10}$' then raise exception 'Ikhodi yeposi ayivumelekile.'; end if;
+
+  update public.profiles
+     set story = trim(p_story), address = trim(p_address), city = trim(p_city), zip = trim(p_zip), completed = true
+   where id = r.id;
+end $$;
+
+-- Permissions: steps 1–4 can be done before having an account (anon);
+-- steps 5–8 need a signed-in user. Internal helpers are not callable.
 revoke all on function public._norm(text)                                  from public, anon, authenticated;
 revoke all on function public._ticket(uuid)                                from public, anon, authenticated;
+revoke all on function public._claimed_profile()                           from public, anon, authenticated;
 revoke all on function public.is_registered()                              from public, anon;
 revoke all on function public.start_registration(uuid)                     from public;
 revoke all on function public.new_riddle(uuid)                             from public;
 revoke all on function public.answer_riddle(uuid, text)                    from public;
 revoke all on function public.new_captcha(uuid)                            from public;
 revoke all on function public.verify_captcha(uuid, text)                   from public;
-revoke all on function public.save_survey(uuid, text, text, text)          from public;
-revoke all on function public.claim_registration(uuid, text, text)         from public, anon;
-revoke all on function public.complete_registration(boolean)               from public, anon;
+revoke all on function public.new_emoji_grid(uuid)                         from public;
+revoke all on function public.verify_emoji_grid(uuid, int[])               from public;
+revoke all on function public.save_survey(uuid, text, text, int)           from public;
+revoke all on function public.claim_registration(uuid, text, boolean)      from public, anon;
+revoke all on function public.new_count_captcha()                          from public, anon;
+revoke all on function public.save_phone(text, text)                       from public, anon;
+revoke all on function public.confirm_identity(text)                       from public, anon;
+revoke all on function public.complete_registration(text, text, text, text) from public, anon;
 grant execute on function public.is_registered()                           to authenticated;
 grant execute on function public.start_registration(uuid)                  to anon, authenticated;
 grant execute on function public.new_riddle(uuid)                          to anon, authenticated;
 grant execute on function public.answer_riddle(uuid, text)                 to anon, authenticated;
 grant execute on function public.new_captcha(uuid)                         to anon, authenticated;
 grant execute on function public.verify_captcha(uuid, text)                to anon, authenticated;
-grant execute on function public.save_survey(uuid, text, text, text)       to anon, authenticated;
-grant execute on function public.claim_registration(uuid, text, text)      to authenticated;
-grant execute on function public.complete_registration(boolean)            to authenticated;
+grant execute on function public.new_emoji_grid(uuid)                      to anon, authenticated;
+grant execute on function public.verify_emoji_grid(uuid, int[])            to anon, authenticated;
+grant execute on function public.save_survey(uuid, text, text, int)        to anon, authenticated;
+grant execute on function public.claim_registration(uuid, text, boolean)   to authenticated;
+grant execute on function public.new_count_captcha()                       to authenticated;
+grant execute on function public.save_phone(text, text)                    to authenticated;
+grant execute on function public.confirm_identity(text)                    to authenticated;
+grant execute on function public.complete_registration(text, text, text, text) to authenticated;

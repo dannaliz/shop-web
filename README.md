@@ -11,6 +11,13 @@ A demo store (clothing, objects, shoes, paintings) with a real backend on
 - **Logged out:** only the home page is visible. There are **no products or
   prices in the page source**, so they can't be read with "view source" /
   inspect.
+- **Sign-up (8 steps, in isiZulu):** riddle → number captcha → emoji picture
+  game → interests + age → name, email, password + terms (account is created)
+  → counting captcha + phone → re-type phone, email and password (fresh
+  sign-in) → short story about a magician + shipping address (only used to
+  pre-fill checkout; a temporary one is fine). Every step is enforced by a
+  Postgres function in `db/schema.sql`, so it can't be skipped from devtools.
+  After changing `db/schema.sql`, run it again in the SQL Editor.
 - **After signing up / logging in:** the browser fetches the catalog and prices
   from Supabase and renders the store.
 - **Checkout:** orders are inserted into the `orders` table in Supabase and read
