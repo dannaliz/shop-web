@@ -13,8 +13,8 @@ A demo store (clothing, objects, shoes, paintings) with a real backend on
   inspect.
 - **Sign-up (8 steps, in isiZulu):** riddle → number captcha → emoji picture
   game → interests + age → name, email, password + terms (account is created)
-  → counting captcha + phone → re-type phone, email and password (fresh
-  sign-in) → short story about a magician + shipping address (only used to
+  → counting captcha + phone → re-type the account email to confirm
+  → short story about a magician + shipping address (only used to
   pre-fill checkout; a temporary one is fine). Every step is enforced by a
   Postgres function in `db/schema.sql`, so it can't be skipped from devtools.
   After changing `db/schema.sql`, run it again in the SQL Editor.

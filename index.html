@@ -502,23 +502,13 @@
         <button class="btn full" type="submit">Qinisekisa uqhubeke</button>
       </form>
 
-      <!-- 7 · Same person check: phone + email + password again -->
+      <!-- 7 · Same person check: email again -->
       <form class="wz-step" data-step="7" id="wz7" novalidate hidden>
-        <p class="sub" style="margin-bottom:12px">Ukuze siqiniseke ukuthi usengumuntu ofanayo, phinda ufake inombolo yakho yocingo, i-imeyili nephasiwedi.</p>
-        <div class="field">
-          <label for="phone2">Inombolo yakho yocingo futhi</label>
-          <input id="phone2" name="phone2" type="tel" autocomplete="off" placeholder="isib. +52 55 1234 5678">
-          <div class="error" id="phone2Err">Sicela ufake inombolo yocingo evumelekile.</div>
-        </div>
+        <p class="sub" style="margin-bottom:12px">Ukuze siqiniseke ukuthi usengumuntu ofanayo, phinda ufake i-imeyili yakho.</p>
         <div class="field">
           <label for="email2">I-imeyili yakho</label>
           <input id="email2" name="email2" type="email" autocomplete="email" placeholder="wena@example.com">
           <div class="error" id="email2Err">Sicela ufake i-imeyili evumelekile.</div>
-        </div>
-        <div class="field">
-          <label for="password3">Iphasiwedi yakho</label>
-          <input id="password3" name="password3" type="password" autocomplete="current-password" placeholder="Iphasiwedi yakho">
-          <div class="error" id="pass3Err">Sicela ufake iphasiwedi yakho.</div>
         </div>
         <button class="btn full" type="submit">Qinisekisa ukuthi yimi</button>
       </form>
@@ -1536,29 +1526,19 @@ $("wz6").addEventListener("submit", async e => {
   });
 });
 
-// Step 7 — same person check: phone, email and password again.
-// The password is checked by signing in again; the server then verifies
-// that fresh sign-in (JWT "amr" claim) and that the phone matches.
+// Step 7 — same person check: type the account email again
+// (the server compares it with the signed-in account's email).
 $("wz7").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
-  const phone = f.phone2.value.trim(), email = f.email2.value.trim().toLowerCase(), pass = f.password3.value;
-  $("phone2Err").textContent = "Sicela ufake inombolo yocingo evumelekile.";
+  const email = f.email2.value.trim().toLowerCase();
   $("email2Err").textContent = "Sicela ufake i-imeyili evumelekile.";
-  $("pass3Err").textContent = "Sicela ufake iphasiwedi yakho.";
-  if (!validate(f, { phone2: PHONE_RE.test(phone), email2: EMAIL_RE.test(email), password3: pass.length > 0 })) return;
+  if (!validate(f, { email2: EMAIL_RE.test(email) })) return;
   await withBusy(f.querySelector("[type=submit]"), "Iyaqinisekisa…", async () => {
-    const { data: { user: me } } = await sb.auth.getUser();
-    if (!me || (me.email || "").toLowerCase() !== email) {
-      markInvalid(f, "email2", "Le imeyili akuyona eye-akhawunti yakho.");
-      return;
-    }
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (error) { markInvalid(f, "password3", "Iphasiwedi ayilungile."); f.password3.value = ""; return; }
     try {
-      await rpc("confirm_identity", { p_phone: phone });
+      await rpc("confirm_identity", { p_email: email });
     } catch (err) {
-      if (/ocingo/i.test(err.message || "")) markInvalid(f, "phone2", err.message);
+      if (/imeyili/i.test(err.message || "")) markInvalid(f, "email2", err.message);
       return;
     }
     wzProfile = { ...wzProfile, identity_ok_at: new Date().toISOString() };

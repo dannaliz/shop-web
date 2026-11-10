@@ -17,9 +17,7 @@
 --        the account exists)
 --    5. Name, email, password, terms → Supabase Auth + claim_registration()
 --    6. Counting captcha + phone     → new_count_captcha() / save_phone()
---    7. Re-type phone, email and password (fresh password sign-in
---       is required, checked through the JWT "amr" claim)
---                                    → confirm_identity()
+--    7. Re-type the account email          → confirm_identity()
 --    8. Short story + shipping address → complete_registration()
 --  Each function refuses to run if the previous step is missing,
 --  and users cannot write to their profile directly. Products,
@@ -564,26 +562,19 @@ begin
   return 'ok';
 end $$;
 
--- STEP 7: same person check. The phone must match the one saved in
--- step 6, and the user must have signed in again WITH THE PASSWORD
--- after step 6 (Supabase puts the sign-in method and time in the
--- JWT "amr" claim), so it can't be skipped from the console.
-create or replace function public.confirm_identity(p_phone text)
-returns void language plpgsql volatile security definer set search_path = public as $$
+-- STEP 7: same person check — the user types the account email again
+-- and it must match the signed-in account's email.
+-- (Earlier version took a phone number; the parameter name changed.)
+drop function if exists public.confirm_identity(text);
+create or replace function public.confirm_identity(p_email text)
+returns void language plpgsql volatile security definer set search_path = public, auth as $$
 declare
   r public.profiles%rowtype;
 begin
   r := public._claimed_profile();
   if r.phone_saved_at is null then raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.'; end if;
-  if regexp_replace(coalesce(p_phone, ''), '\D', '', 'g') <> regexp_replace(coalesce(r.phone, ''), '\D', '', 'g') then
-    raise exception 'Inombolo yocingo ayifani naleyo oyifake ngaphambili.';
-  end if;
-  if not exists (
-    select 1 from jsonb_array_elements(coalesce(auth.jwt() -> 'amr', '[]'::jsonb)) a
-     where a ->> 'method' = 'password'
-       and (a ->> 'timestamp')::bigint >= floor(extract(epoch from r.phone_saved_at))::bigint
-  ) then
-    raise exception 'Sicela uphinde ufake i-imeyili nephasiwedi yakho.';
+  if lower(trim(coalesce(p_email, ''))) <> lower(coalesce((select email from auth.users where id = r.id), '')) then
+    raise exception 'Le imeyili akuyona eye-akhawunti yakho.';
   end if;
   update public.profiles set identity_ok_at = now() where id = r.id;
 end $$;
