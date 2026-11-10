@@ -161,7 +161,7 @@
   .field.invalid .emoji-cell { border-color: #b3261e; }
   .count-box img { width: 300px; max-width: calc(100% - 52px); height: auto; aspect-ratio: 2; }
   .wz-section { border-top: 1px dashed var(--line); margin-top: 22px; padding-top: 2px; }
-  .wz-section .note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin-bottom: 14px; }
+  #wzDone .note, .wz-section .note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin-bottom: 14px; }
   .hint { display: block; color: var(--muted); font-size: .78rem; margin-top: 4px; }
   .counter { display: block; text-align: right; color: var(--muted); font-size: .78rem; margin-top: 4px; }
   .counter.ok { color: var(--ok); }
@@ -440,7 +440,7 @@
         </div>
       </form>
 
-      <!-- 5 · Account: name + email + password + terms -->
+      <!-- 5 · Account: name + email + terms (accepted by solving a sum captcha) -->
       <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
         <div class="field">
           <label for="name">Igama eliphelele</label>
@@ -454,30 +454,28 @@
             <input id="regEmail" name="regEmail" type="email" placeholder="wena@example.com" autocomplete="email">
             <div class="error">Sicela ufake i-imeyili evumelekile.</div>
           </div>
-          <div class="row">
-            <div class="field">
-              <label for="regPassword">Iphasiwedi</label>
-              <input id="regPassword" name="regPassword" type="password" placeholder="Okungenani izinhlamvu ezi-6" autocomplete="new-password">
-              <div class="error">Okungenani izinhlamvu ezi-6.</div>
-            </div>
-            <div class="field">
-              <label for="regPassword2">Qinisekisa iphasiwedi</label>
-              <input id="regPassword2" name="regPassword2" type="password" placeholder="Phinda uyibhale" autocomplete="new-password">
-              <div class="error">Amaphasiwedi awafani.</div>
-            </div>
-          </div>
         </div>
         <div class="terms-box">
           <span style="font-size:1.8rem">📄</span>
           <div>
             <a href="terminos.pdf" target="_blank" rel="noopener" id="termsLink">Funda Imigomo Nemibandela (PDF)</a>
-            <small id="termsHint">Vula idokhumenti ukuze uvule ibhokisi.</small>
+            <small id="termsHint">Vula idokhumenti, bese uxazulula isibalo ukuze uyamukele.</small>
           </div>
         </div>
-        <div class="field">
-          <label class="check"><input type="checkbox" id="terms" name="terms" disabled> Ngiyifundile futhi ngiyayamukela Imigomo Nemibandela.</label>
-          <div class="error">Kumele wamukele Imigomo Nemibandela ukuze uqhubeke.</div>
+        <!-- Solving this sum = accepting the Terms (checked on the server). -->
+        <div id="termsCaptcha" hidden>
+          <div class="captcha-box">
+            <img id="termsImg" width="200" height="70" alt="Isithombe sokuphepha esinesibalo sokuhlanganisa">
+            <button type="button" class="icon-btn" id="termsRefresh" title="Thola isibalo esisha" aria-label="Thola isibalo esisha">&#8635;</button>
+          </div>
         </div>
+        <div class="field" id="termsField">
+          <label for="terms">Impendulo yesibalo</label>
+          <input id="terms" name="terms" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="isib. 42" disabled>
+          <small class="hint">Ngokuxazulula lesi sibalo, uyavuma ukuthi uyifundile futhi uyayamukela Imigomo Nemibandela.</small>
+          <div class="error" id="termsErr">Vula Imigomo Nemibandela bese ubhala impendulo yesibalo.</div>
+        </div>
+        <p class="hint" id="termsDone" hidden>✅ Imigomo Nemibandela yamukelwe.</p>
         <button class="btn full" type="submit" id="acctBtn">Dala i-akhawunti yami</button>
       </form>
 
@@ -502,15 +500,24 @@
         <button class="btn full" type="submit">Qinisekisa uqhubeke</button>
       </form>
 
-      <!-- 7 · Same person check: email again -->
+      <!-- 7 · Random username (given by the server) + choose a password -->
       <form class="wz-step" data-step="7" id="wz7" novalidate hidden>
-        <p class="sub" style="margin-bottom:12px">Ukuze siqiniseke ukuthi usengumuntu ofanayo, phinda ufake i-imeyili yakho.</p>
-        <div class="field">
-          <label for="email2">I-imeyili yakho</label>
-          <input id="email2" name="email2" type="email" autocomplete="email" placeholder="wena@example.com">
-          <div class="error" id="email2Err">Sicela ufake i-imeyili evumelekile.</div>
+        <p class="sub" style="margin-bottom:12px">Sikunikeze igama lomsebenzisi. Uzolisebenzisa nephasiwedi oyikhetha manje ukuze ungene.</p>
+        <div class="riddle"><span>🪪</span><p>Igama lakho lomsebenzisi: <b id="username">Ilayisha…</b></p></div>
+        <input type="text" name="username" id="usernameField" autocomplete="username" readonly hidden>
+        <div class="row">
+          <div class="field">
+            <label for="regPassword">Iphasiwedi</label>
+            <input id="regPassword" name="regPassword" type="password" placeholder="Okungenani izinhlamvu ezi-6" autocomplete="new-password">
+            <div class="error" id="regPasswordErr">Okungenani izinhlamvu ezi-6.</div>
+          </div>
+          <div class="field">
+            <label for="regPassword2">Qinisekisa iphasiwedi</label>
+            <input id="regPassword2" name="regPassword2" type="password" placeholder="Phinda uyibhale" autocomplete="new-password">
+            <div class="error">Amaphasiwedi awafani.</div>
+          </div>
         </div>
-        <button class="btn full" type="submit">Qinisekisa ukuthi yimi</button>
+        <button class="btn full" type="submit">Londoloza iphasiwedi</button>
       </form>
 
       <!-- 8 · Short story + shipping address (separate section) -->
@@ -548,14 +555,24 @@
         <button class="btn full" type="submit">Qeda ukubhalisa</button>
       </form>
 
+      <!-- Done: tells the user how to log in from now on -->
+      <div id="wzDone" hidden>
+        <div class="riddle"><span>🎉</span><p>Ukubhalisa kwakho kuphelile!</p></div>
+        <p class="sub" style="margin-bottom:12px">Manje ungangena nganoma yisiphi isikhathi usebenzisa <b>igama lakho lomsebenzisi</b> kanye <b>nephasiwedi oyikhethile</b>:</p>
+        <div class="riddle"><span>🪪</span><p><b id="doneUser"></b></p></div>
+        <p class="note">Gcina leli gama lomsebenzisi endaweni ephephile — uzolidinga njalo uma ungena.</p>
+        <button class="btn full" type="button" id="doneBtn">Qala ukuthenga</button>
+      </div>
+
       <button type="button" class="linkbtn" id="wzLogout" hidden>Sebenzisa enye i-akhawunti</button>
     </div>
 
     <form id="loginForm" novalidate hidden>
       <div class="field">
-        <label for="logEmail">I-imeyili</label>
-        <input id="logEmail" name="logEmail" type="email" placeholder="wena@example.com" autocomplete="email">
-        <div class="error">Sicela ufake i-imeyili evumelekile.</div>
+        <label for="logUser">Igama lomsebenzisi</label>
+        <input id="logUser" name="logUser" type="text" placeholder="isib. ingwe-k7m2qx" autocomplete="username" autocapitalize="none" spellcheck="false">
+        <small class="hint">Igama lomsebenzisi esikunike lona lapho ubhalisa.</small>
+        <div class="error" id="logUserErr">Sicela ufake igama lakho lomsebenzisi.</div>
       </div>
       <div class="field">
         <label for="logPassword">Iphasiwedi</label>
@@ -674,7 +691,7 @@ async function loadProfileAndOrders(uid) {
     return;
   }
   wzProfile = null;
-  user = { name: prof.name || "Member", address: prof.address || "", city: prof.city || "", zip: prof.zip || "", phone: prof.phone || "" };
+  user = { name: prof.name || "Member", username: prof.username || "", address: prof.address || "", city: prof.city || "", zip: prof.zip || "", phone: prof.phone || "" };
   const { data: ords } = await sb.from("orders").select("*").order("created_at", { ascending: false });
   orders = (ords || []).map(orderFromRow);
 }
@@ -1170,14 +1187,14 @@ $("sort").addEventListener("change", renderGrid);
 // prices / orders stay locked by RLS until the server marks the profile as
 // completed, so editing this code in devtools cannot unlock the shop.
 const STEP_NAMES = ["Imfumbe", "Ukuqinisekisa", "Umdlalo wezithombe", "Okuthandayo",
-                    "I-akhawunti yakho", "Uvivinyo lwesibili", "Qinisekisa ukuthi nguwe", "Indaba nekheli"];
+                    "I-akhawunti yakho", "Uvivinyo lwesibili", "Igama lomsebenzisi nephasiwedi", "Indaba nekheli"];
 const STEPS = STEP_NAMES.length;
 const STORY_MIN = 150;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^\+?[0-9 ()-]{7,20}$/;
 const TICKET_KEY = "mm_reg_ticket";
-const PENDING_KEY = "mm_reg_pending";   // {name} while waiting for email confirmation
-let ticket = null;                       // {token, question, riddle_ok, captcha_ok, emoji_ok, survey_done}
+const PENDING_KEY = "mm_reg_pending";   // {name} when the email already had an account
+let ticket = null;                       // {token, question, riddle_ok, captcha_ok, emoji_ok, terms_ok, survey_done}
 let wzStep = 1;
 let emojiPicks = new Set();
 
@@ -1186,7 +1203,7 @@ const claimed = () => !!(authUserId && wzProfile && wzProfile.looking_for && wzP
 function stepFor() {
   if (claimed()) {
     if (!wzProfile.phone_saved_at) return 6;
-    if (!wzProfile.identity_ok_at) return 7;
+    if (!wzProfile.login_set_at) return 7;
     return 8;
   }
   if (authUserId && wzProfile && wzProfile.looking_for) return 5;   // older sign-up: name + terms missing
@@ -1204,6 +1221,7 @@ async function ensureTicket() {
 function showStep(n) {
   wzStep = n;
   document.querySelectorAll(".wz-step").forEach(f => { f.hidden = +f.dataset.step !== n; });
+  $("wzDone").hidden = true;
   $("wzBar").style.width = (n / STEPS * 100) + "%";
   $("wzLabel").textContent = `Isinyathelo ${n} kwezi-${STEPS} · ${STEP_NAMES[n - 1]}`;
   $("wzLogout").hidden = !authUserId;
@@ -1216,16 +1234,18 @@ function showStep(n) {
   if (n === 2) loadCaptcha();
   if (n === 3) loadEmojiGrid();
   if (n === 5) {
-    $("acctFields").hidden = !!authUserId;          // signed-in users already have email + password
+    $("acctFields").hidden = !!authUserId;          // signed-in users already have an email
     $("acctBtn").textContent = authUserId ? "Londoloza uqhubeke" : "Dala i-akhawunti yami";
     const f = $("wz5");
     if (!f.name.value && wzProfile?.name && wzProfile.name !== "Member") f.name.value = wzProfile.name;
+    renderTerms();
   }
   if (n === 6) loadCount();
+  if (n === 7) loadUsername();
   document.querySelector(`.wz-step[data-step="${n}"] input:not([type=radio]):not([type=hidden]):not([disabled]), .wz-step[data-step="${n}"] textarea`)?.focus();
 }
 async function showWizard() {
-  try { if (!(authUserId && wzProfile?.looking_for)) await ensureTicket(); } catch { return; }
+  try { if (!claimed()) await ensureTicket(); } catch { return; }
   showStep(stepFor());
 }
 function setAuthMode(mode) {
@@ -1277,20 +1297,21 @@ async function withBusy(btn, label, work) {
   try { return await work(); } catch (err) { console.warn(err); } finally { btn.disabled = false; btn.textContent = old; }
 }
 
-// Signed-in user whose ticket was not claimed yet (e.g. confirmed the
-// email and logged in): finish step 5 automatically if we can.
+// Signed-in user whose ticket was not claimed yet (e.g. the email already
+// had an account and they logged in): finish step 5 automatically if we can.
 async function tryPendingClaim() {
   const pending = load(PENDING_KEY, null);
   const token = load(TICKET_KEY, null);
   if (!pending || !token || claimed()) return;
-  const { error } = await sb.rpc("claim_registration", { p_token: token, p_name: pending.name, p_accept: true });
+  const { error } = await sb.rpc("claim_registration", { p_token: token, p_name: pending.name });
   if (!error) {
     save(PENDING_KEY, null); save(TICKET_KEY, null); ticket = null;
     wzProfile = { ...wzProfile, looking_for: true, name: pending.name, terms_accepted_at: new Date().toISOString() };
   }
 }
 
-async function afterAuth() {
+// `finished` = the wizard was just completed: show the "how to log in" note.
+async function afterAuth(finished) {
   await loadProfileAndOrders(authUserId);
   if (!user) {                       // signed in, but the wizard is not finished
     await tryPendingClaim();
@@ -1299,15 +1320,36 @@ async function afterAuth() {
     return;
   }
   await Promise.all([loadProducts(), loadUiText()]);
-  close("registerOverlay");
+  if (finished) showDone(); else close("registerOverlay");
   ["wz1", "wz2", "wz3", "wz4", "wz5", "wz6", "wz7", "wz8"].forEach(id => $(id).reset());
   $("recsBox").hidden = true; $("surveyBtn").hidden = false;
+  $("terms").disabled = true;
   $("storyCount").textContent = `0 / ${STORY_MIN}`;
   renderHeader(); renderGrid();
+  if (finished) return;              // the rest runs when the note is closed
   window.scrollTo({ top: 0, behavior: "smooth" });
   toast(`Siyakwamukela, ${user.name.split(" ")[0]}! Amanani manje avuliwe.`);
   if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
 }
+// Final screen: from now on the user logs in with the random username
+// and the password chosen in step 7.
+function showDone() {
+  document.querySelectorAll(".wz-step").forEach(f => { f.hidden = true; });
+  $("wzDone").hidden = false;
+  $("doneUser").textContent = user.username || "";
+  $("wzBar").style.width = "100%";
+  $("wzLabel").textContent = "Kuphelile ✓";
+  $("wzLogout").hidden = true;
+  document.querySelector(".auth-tabs").hidden = true;
+  $("authTitle").textContent = `Siyakwamukela, ${user.name.split(" ")[0]}!`;
+  $("authSub").textContent = "Amanani, imininingwane yemikhiqizo nokuthenga manje sekuvuliwe.";
+  $("doneBtn").focus();
+}
+$("doneBtn").addEventListener("click", () => {
+  close("registerOverlay");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  if (pendingAction) { const a = pendingAction; pendingAction = null; a(); }
+});
 async function logout() {
   if (sb) await sb.auth.signOut();
   user = null; authUserId = null; wzProfile = null; products = []; orders = []; cart = []; ticket = null;
@@ -1445,45 +1487,102 @@ $("wz4").addEventListener("submit", async e => {
 });
 $("recsNext").addEventListener("click", () => showStep(5));
 
-// Step 5 — name + email, password (creates the account) + terms
+// Step 5 — name + email + terms. The terms are accepted by solving a sum
+// captcha (checked on the server) instead of ticking a box. The account
+// is created with a random temporary password the user never sees; the
+// real password is chosen in step 7, together with a random username.
 async function claim(name) {
-  await rpc("claim_registration", { p_token: ticket?.token || load(TICKET_KEY, null), p_name: name, p_accept: true });
+  await rpc("claim_registration", { p_token: ticket?.token || load(TICKET_KEY, null), p_name: name });
   save(TICKET_KEY, null); save(PENDING_KEY, null); ticket = null;
   wzProfile = { ...wzProfile, looking_for: wzProfile?.looking_for || true, name, terms_accepted_at: new Date().toISOString() };
   showStep(6);
 }
-$("termsLink").addEventListener("click", () => { $("terms").disabled = false; $("termsHint").hidden = true; });
+function randomPassword() {
+  const b = new Uint8Array(24);
+  crypto.getRandomValues(b);
+  return btoa(String.fromCharCode(...b)).replace(/[+/=]/g, "") + "aA1!";
+}
+function renderTerms() {
+  const done = !!ticket?.terms_ok, opened = !$("terms").disabled;
+  $("termsField").hidden = done;
+  $("termsCaptcha").hidden = done || !opened;
+  $("termsHint").hidden = done;
+  $("termsDone").hidden = !done;
+}
+async function loadTermsCaptcha() {
+  const img = $("termsImg");
+  img.removeAttribute("src");
+  $("terms").value = "";
+  try {
+    const svg = await rpc("new_terms_captcha", { p_token: ticket.token });
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  } catch {}
+}
+$("termsLink").addEventListener("click", () => {
+  if (!$("terms").disabled || ticket?.terms_ok) return;
+  $("terms").disabled = false;
+  renderTerms();
+  loadTermsCaptcha();
+});
+$("termsRefresh").addEventListener("click", loadTermsCaptcha);
+// true once the server says the sum is right (= terms accepted).
+async function acceptTerms(f) {
+  if (ticket?.terms_ok) return true;
+  const res = await rpc("verify_terms_captcha", { p_token: ticket.token, p_answer: f.terms.value.trim() });
+  if (res === "ok") { ticket.terms_ok = true; renderTerms(); return true; }
+  if (res === "expired") {
+    toast("Leso sibalo siphelelwe yisikhathi. Nasi esisha.");
+    await loadTermsCaptcha();
+    return false;
+  }
+  markInvalid(f, "terms", "Akulungile. Zama futhi.");
+  f.terms.select();
+  return false;
+}
+// Creates the account (random temporary password). Returns true when signed in.
+// No email confirmation step: the user goes straight on to step 6.
+async function createAccount(name, email) {
+  const pw = randomPassword();
+  const { data, error } = await sb.auth.signUp({ email, password: pw });
+  if (error) {
+    if (/registered|exists/i.test(error.message)) {
+      save(PENDING_KEY, { name });
+      toast("Le imeyili isivele ine-akhawunti. Ngena ngegama lakho lomsebenzisi ukuze uqhubeke.");
+      setAuthMode("login");
+    } else toast(error.message);
+    return false;
+  }
+  let session = data.session;
+  if (!session) {                     // no session returned → sign in right away
+    const r = await sb.auth.signInWithPassword({ email, password: pw });
+    session = r.data?.session;
+  }
+  if (!session) {
+    toast("Asikwazanga ukudala i-akhawunti yakho manje. Sicela uzame futhi.");
+    return false;
+  }
+  authUserId = session.user.id; wzProfile = {};
+  renderHeader();
+  return true;
+}
 $("wz5").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
   const name = f.name.value.trim(), email = f.regEmail.value.trim();
-  const checks = { name: name.length >= 2, terms: f.terms.checked };
-  if (!authUserId) Object.assign(checks, {
-    regEmail: EMAIL_RE.test(email),
-    regPassword: f.regPassword.value.length >= 6,
-    regPassword2: f.regPassword2.value.length >= 6 && f.regPassword2.value === f.regPassword.value,
-  });
+  const checks = { name: name.length >= 2 };
+  if (!authUserId) checks.regEmail = EMAIL_RE.test(email);
+  if (!ticket?.terms_ok) {
+    $("termsErr").textContent = f.terms.disabled
+      ? "Vula Imigomo Nemibandela kuqala, bese uxazulula isibalo."
+      : "Sicela ubhale impendulo yesibalo.";
+    checks.terms = !f.terms.disabled && /^\d{1,3}$/.test(f.terms.value.trim());
+  }
   if (!validate(f, checks)) return;
   await withBusy($("acctBtn"), authUserId ? "Iyalondoloza…" : "Idala i-akhawunti…", async () => {
+    if (!(await acceptTerms(f))) return;
     if (!authUserId) {
       if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
-      const { data, error } = await sb.auth.signUp({ email, password: f.regPassword.value });
-      if (error) {
-        if (/registered|exists/i.test(error.message)) {
-          save(PENDING_KEY, { name });
-          toast("Le imeyili isivele ine-akhawunti. Ngena ukuze uqhubeke.");
-          setAuthMode("login"); $("logEmail").value = email;
-        } else toast(error.message);
-        return;
-      }
-      if (!data.session) {
-        save(PENDING_KEY, { name });
-        toast("Hlola i-imeyili yakho ukuze uqinisekise i-akhawunti, bese ungena ukuze uqedele.");
-        setAuthMode("login"); $("logEmail").value = email;
-        return;
-      }
-      authUserId = data.user.id; wzProfile = {};
-      renderHeader();
+      if (!(await createAccount(name, email))) return;
     }
     await claim(name);
   });
@@ -1526,22 +1625,30 @@ $("wz6").addEventListener("submit", async e => {
   });
 });
 
-// Step 7 — same person check: type the account email again
-// (the server compares it with the signed-in account's email).
+// Step 7 — the server gives a random username; the user chooses the
+// password (set with Supabase Auth, then confirmed on the server).
+async function loadUsername() {
+  $("username").textContent = wzProfile?.username || "Ilayisha…";
+  try {
+    const u = await rpc("get_username", {});
+    wzProfile = { ...wzProfile, username: u };
+    $("username").textContent = u;
+    $("usernameField").value = u;
+  } catch {}
+}
 $("wz7").addEventListener("submit", async e => {
   e.preventDefault();
   const f = e.target;
-  const email = f.email2.value.trim().toLowerCase();
-  $("email2Err").textContent = "Sicela ufake i-imeyili evumelekile.";
-  if (!validate(f, { email2: EMAIL_RE.test(email) })) return;
-  await withBusy(f.querySelector("[type=submit]"), "Iyaqinisekisa…", async () => {
-    try {
-      await rpc("confirm_identity", { p_email: email });
-    } catch (err) {
-      if (/imeyili/i.test(err.message || "")) markInvalid(f, "email2", err.message);
-      return;
-    }
-    wzProfile = { ...wzProfile, identity_ok_at: new Date().toISOString() };
+  const pw = f.regPassword.value;
+  $("regPasswordErr").textContent = "Okungenani izinhlamvu ezi-6.";
+  if (!validate(f, { regPassword: pw.length >= 6, regPassword2: pw.length >= 6 && f.regPassword2.value === pw })) return;
+  if (!wzProfile?.username) { await loadUsername(); return; }
+  await withBusy(f.querySelector("[type=submit]"), "Iyalondoloza…", async () => {
+    const { error } = await sb.auth.updateUser({ password: pw });
+    // "same_password" = it was already saved on a previous try.
+    if (error && error.code !== "same_password") { markInvalid(f, "regPassword", error.message); return; }
+    await rpc("confirm_login", {});
+    wzProfile = { ...wzProfile, login_set_at: new Date().toISOString() };
     f.reset();
     showStep(8);
   });
@@ -1561,7 +1668,7 @@ $("wz8").addEventListener("submit", async e => {
                      zip: /^[A-Za-z0-9 -]{3,10}$/.test(zip) })) return;
   await withBusy(f.querySelector("[type=submit]"), "Iyaqeda…", async () => {
     await rpc("complete_registration", { p_story: story, p_address: street, p_city: city, p_zip: zip });
-    await afterAuth();
+    await afterAuth(true);
   });
 });
 
@@ -1569,10 +1676,18 @@ $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
   const f = e.target;
-  if (!validate(f, { logEmail: EMAIL_RE.test(f.logEmail.value.trim()), logPassword: f.logPassword.value.length >= 1 })) return;
+  const login = f.logUser.value.trim();
+  $("logUserErr").textContent = login.includes("@")
+    ? "Sebenzisa igama lakho lomsebenzisi, hhayi i-imeyili."
+    : "Sicela ufake igama lakho lomsebenzisi.";
+  if (!validate(f, { logUser: login.length >= 3 && !login.includes("@"), logPassword: f.logPassword.value.length >= 1 })) return;
   await withBusy(f.querySelector("[type=submit]"), "Iyangena…", async () => {
-    const { data, error } = await sb.auth.signInWithPassword({ email: f.logEmail.value.trim(), password: f.logPassword.value });
-    if (error) { toast("I-imeyili noma iphasiwedi ayilungile."); return; }
+    // Log in with the username only: the server looks up the account's
+    // email (Supabase Auth signs in with email + password underneath).
+    const { data: email, error: lookupError } = await sb.rpc("login_email", { p_username: login });
+    if (lookupError || !email) { toast("Igama lomsebenzisi noma iphasiwedi ayilungile."); return; }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: f.logPassword.value });
+    if (error) { toast("Igama lomsebenzisi noma iphasiwedi ayilungile."); return; }
     authUserId = data.user.id;
     f.reset();
     await afterAuth();
@@ -1591,6 +1706,7 @@ $("loginForm").addEventListener("submit", async e => {
   await refreshSession();
   renderHeader();
   renderGrid();
+  if (authUserId && !user) { await tryPendingClaim(); renderHeader(); }
 })();
 </script>
 </body>
