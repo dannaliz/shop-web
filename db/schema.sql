@@ -19,10 +19,10 @@
 --       verify_terms_captcha(), then Supabase Auth (random temporary
 --       password the user never sees) + claim_registration()
 --    6. Counting captcha + phone     → new_count_captcha() / save_phone()
---    7. Random username + choose a password → get_username(),
---       Supabase Auth updateUser() + confirm_login()
+--    7. Random username (it is the login secret) → new_login_code(),
+--       then the browser sets it as the password (Supabase updateUser)
 --    8. Short story + shipping address → complete_registration()
---  Log in: only the username (→ login_email()) + the password.
+--  Log in: email + the random username from step 7.
 --  Each function refuses to run if the previous step is missing,
 --  and users cannot write to their profile directly. Products,
 --  prices, UI text and new orders are only available once
@@ -52,10 +52,7 @@ alter table public.profiles
   add column if not exists phone_saved_at    timestamptz,
   add column if not exists identity_ok_at    timestamptz,
   add column if not exists story             text,
-  add column if not exists username          text,
   add column if not exists login_set_at      timestamptz;
-
-create unique index if not exists profiles_username_key on public.profiles (lower(username));
 
 alter table public.profiles enable row level security;
 
@@ -152,6 +149,9 @@ drop function if exists public.claim_registration(uuid, text, text);
 drop function if exists public.complete_registration(boolean);
 drop function if exists public.claim_registration(uuid, text, boolean);
 drop function if exists public.confirm_identity(text);
+drop function if exists public.get_username();
+drop function if exists public.confirm_login();
+drop function if exists public.login_email(text);
 drop table if exists public.captchas;
 
 create table if not exists public.riddles (
@@ -537,9 +537,8 @@ begin
   return 'wrong';
 end $$;
 
--- Per-user private state: the step-6 counting captcha and a fingerprint
--- of the step-5 temporary password. Kept OUT of profiles because users
--- can read their own profile (that would leak the answer).
+-- State of the step-6 counting captcha. Kept OUT of profiles because
+-- users can read their own profile (that would leak the answer).
 create table if not exists public.identity_checks (
   id             uuid primary key references auth.users(id) on delete cascade,
   count_answer   text,
@@ -547,7 +546,6 @@ create table if not exists public.identity_checks (
   count_attempts int     not null default 0,
   count_ok       boolean not null default false
 );
-alter table public.identity_checks add column if not exists initial_pw text;
 alter table public.identity_checks enable row level security;
 revoke all on public.identity_checks from anon, authenticated;
 
@@ -582,12 +580,6 @@ begin
   end if;
 
   update public.registration_tickets set claimed_by = uid where token = p_token;
-
-  -- Fingerprint of the current (temporary) password, so step 7 can check
-  -- that the user really chose their own password.
-  insert into public.identity_checks (id, initial_pw)
-  values (uid, (select md5(coalesce(encrypted_password, '')) from auth.users where id = uid))
-  on conflict (id) do update set initial_pw = excluded.initial_pw;
 end $$;
 
 create or replace function public._claimed_profile()
@@ -675,9 +667,12 @@ begin
   return 'ok';
 end $$;
 
--- STEP 7a: gives the user a random username (created once, then kept).
--- Looks like "ingwe-k7m2qx": an animal in isiZulu + 6 random characters.
-create or replace function public.get_username()
+-- STEP 7: gives the user a random username, e.g. "ingwe-k7m2qx9a" (an
+-- animal in isiZulu + 8 random characters). It works as their secret
+-- login: they log in with email + this username. The browser makes it
+-- the account password (Supabase Auth updateUser); it is NOT stored here.
+-- Can only be called while the sign-up is unfinished.
+create or replace function public.new_login_code()
 returns text language plpgsql volatile security definer set search_path = public as $$
 declare
   r     public.profiles%rowtype;
@@ -688,44 +683,12 @@ declare
 begin
   r := public._claimed_profile();
   if r.phone_saved_at is null then raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.'; end if;
-  if r.username is not null then return r.username; end if;
-  loop
-    u := words[1 + floor(random()*10)::int] || '-';
-    for i in 1..6 loop u := u || substr(abc, 1 + floor(random()*length(abc))::int, 1); end loop;
-    exit when not exists (select 1 from public.profiles where lower(username) = u);
-  end loop;
-  update public.profiles set username = u where id = r.id;
+  if r.completed then raise exception 'Ukubhalisa sekuphelile.'; end if;
+  u := words[1 + floor(random()*10)::int] || '-';
+  for i in 1..8 loop u := u || substr(abc, 1 + floor(random()*length(abc))::int, 1); end loop;
+  update public.profiles set login_set_at = now() where id = r.id;
   return u;
 end $$;
-
--- STEP 7b: called after the browser set the new password with Supabase
--- Auth (updateUser). Checks that the password is no longer the random
--- temporary one from step 5.
-create or replace function public.confirm_login()
-returns void language plpgsql volatile security definer set search_path = public as $$
-declare
-  r  public.profiles%rowtype;
-  pw text;
-begin
-  r := public._claimed_profile();
-  if r.phone_saved_at is null or r.username is null then
-    raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.';
-  end if;
-  select initial_pw into pw from public.identity_checks where id = r.id;
-  if pw is not null and pw = (select md5(coalesce(encrypted_password, '')) from auth.users where id = r.id) then
-    raise exception 'Sicela ukhethe iphasiwedi yakho kuqala.';
-  end if;
-  update public.profiles set login_set_at = now() where id = r.id;
-end $$;
-
--- LOG IN with a username: returns the account email for that username
--- (or null), so the browser can sign in with Supabase Auth.
-create or replace function public.login_email(p_username text)
-returns text language sql stable security definer set search_path = public as $$
-  select u.email from public.profiles p join auth.users u on u.id = p.id
-   where p.username is not null and lower(p.username) = lower(trim(coalesce(p_username, '')))
-   limit 1;
-$$;
 
 -- STEP 8: short story + shipping address → account fully registered.
 -- The address only pre-fills the shipping form at checkout, where the
@@ -770,9 +733,7 @@ revoke all on function public.verify_terms_captcha(uuid, text)             from 
 revoke all on function public.claim_registration(uuid, text)               from public, anon;
 revoke all on function public.new_count_captcha()                          from public, anon;
 revoke all on function public.save_phone(text, text)                       from public, anon;
-revoke all on function public.get_username()                               from public, anon;
-revoke all on function public.confirm_login()                              from public, anon;
-revoke all on function public.login_email(text)                            from public;
+revoke all on function public.new_login_code()                             from public, anon;
 revoke all on function public.complete_registration(text, text, text, text) from public, anon;
 grant execute on function public.is_registered()                           to authenticated;
 grant execute on function public.start_registration(uuid)                  to anon, authenticated;
@@ -788,7 +749,5 @@ grant execute on function public.verify_terms_captcha(uuid, text)          to an
 grant execute on function public.claim_registration(uuid, text)            to authenticated;
 grant execute on function public.new_count_captcha()                       to authenticated;
 grant execute on function public.save_phone(text, text)                    to authenticated;
-grant execute on function public.get_username()                            to authenticated;
-grant execute on function public.confirm_login()                           to authenticated;
-grant execute on function public.login_email(text)                         to anon, authenticated;
+grant execute on function public.new_login_code()                          to authenticated;
 grant execute on function public.complete_registration(text, text, text, text) to authenticated;

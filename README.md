@@ -14,14 +14,15 @@ A demo store (clothing, objects, shoes, paintings) with a real backend on
 - **Sign-up (8 steps, in isiZulu):** riddle → number captcha → emoji picture
   game → interests + age → name + email, and the Terms are accepted by
   solving a sum captcha (account is created with a random temporary
-  password) → counting captcha + phone → the server gives a **random
-  username** and the user chooses their password → short story about a
-  magician + shipping address (only used to pre-fill checkout; a temporary
-  one is fine). At the end a note tells the user to log in from now on with
-  that username and the password they chose. Every step is enforced by a
-  Postgres function in `db/schema.sql`, so it can't be skipped from devtools.
-  After changing `db/schema.sql`, run it again in the SQL Editor.
-- **Log in:** only the username given in step 7 + the password (no email).
+  password the user never sees) → counting captcha + phone → the server
+  gives a **random username**, which becomes the account password → short
+  story about a magician + shipping address (only used to pre-fill
+  checkout; a temporary one is fine). At the end a note tells the user to
+  log in from now on with their email and that username. The user never
+  types a password. Every step is enforced by a Postgres function in
+  `db/schema.sql`, so it can't be skipped from devtools. After changing
+  `db/schema.sql`, run it again in the SQL Editor.
+- **Log in:** email + the random username from step 7 (no password).
 - **After signing up / logging in:** the browser fetches the catalog and prices
   from Supabase and renders the store.
 - **Checkout:** orders are inserted into the `orders` table in Supabase and read
