@@ -19,10 +19,10 @@
 --       verify_terms_captcha(), then Supabase Auth (random temporary
 --       password the user never sees) + claim_registration()
 --    6. Counting captcha + phone     → new_count_captcha() / save_phone()
---    7. Random username (it is the login secret) → new_login_code(),
---       then the browser sets it as the password (Supabase updateUser)
+--    7. Secret random username → new_login_code(), then the browser
+--       sets it as the password (Supabase updateUser)
 --    8. Short story + shipping address → complete_registration()
---  Log in: email + the random username from step 7.
+--  Log in: ONLY the secret username (→ login_email() finds the account).
 --  Each function refuses to run if the previous step is missing,
 --  and users cannot write to their profile directly. Products,
 --  prices, UI text and new orders are only available once
@@ -537,8 +537,8 @@ begin
   return 'wrong';
 end $$;
 
--- State of the step-6 counting captcha. Kept OUT of profiles because
--- users can read their own profile (that would leak the answer).
+-- State of the step-6 counting captcha and the hash of the step-7 secret
+-- username. Kept OUT of profiles because users can read their own profile.
 create table if not exists public.identity_checks (
   id             uuid primary key references auth.users(id) on delete cascade,
   count_answer   text,
@@ -546,6 +546,9 @@ create table if not exists public.identity_checks (
   count_attempts int     not null default 0,
   count_ok       boolean not null default false
 );
+-- SHA-256 of the step-7 secret username (used to find the account at login).
+alter table public.identity_checks add column if not exists login_hash text;
+create index if not exists identity_checks_login_hash_idx on public.identity_checks (login_hash);
 alter table public.identity_checks enable row level security;
 revoke all on public.identity_checks from anon, authenticated;
 
@@ -667,11 +670,17 @@ begin
   return 'ok';
 end $$;
 
--- STEP 7: gives the user a random username, e.g. "ingwe-k7m2qx9a" (an
--- animal in isiZulu + 8 random characters). It works as their secret
--- login: they log in with email + this username. The browser makes it
--- the account password (Supabase Auth updateUser); it is NOT stored here.
--- Can only be called while the sign-up is unfinished.
+-- STEP 7: gives the user a secret random username, e.g. "ingwe-k7m2qx9a"
+-- (an animal in isiZulu + 8 random characters). It is the ONLY thing
+-- needed to log in. The browser makes it the account password (Supabase
+-- Auth updateUser). Only its SHA-256 hash is kept here (private table),
+-- so login_email() can find the account; the username itself is never
+-- stored. Can only be called while the sign-up is unfinished.
+create or replace function public._code_hash(p_code text)
+returns text language sql immutable as $$
+  select encode(sha256(convert_to(lower(trim(coalesce(p_code, ''))), 'UTF8')), 'hex');
+$$;
+
 create or replace function public.new_login_code()
 returns text language plpgsql volatile security definer set search_path = public as $$
 declare
@@ -684,11 +693,26 @@ begin
   r := public._claimed_profile();
   if r.phone_saved_at is null then raise exception 'Sicela uqedele izinyathelo zangaphambili kuqala.'; end if;
   if r.completed then raise exception 'Ukubhalisa sekuphelile.'; end if;
-  u := words[1 + floor(random()*10)::int] || '-';
-  for i in 1..8 loop u := u || substr(abc, 1 + floor(random()*length(abc))::int, 1); end loop;
+  loop
+    u := words[1 + floor(random()*10)::int] || '-';
+    for i in 1..8 loop u := u || substr(abc, 1 + floor(random()*length(abc))::int, 1); end loop;
+    exit when not exists (select 1 from public.identity_checks where login_hash = public._code_hash(u));
+  end loop;
+  insert into public.identity_checks (id, login_hash) values (r.id, public._code_hash(u))
+  on conflict (id) do update set login_hash = excluded.login_hash;
   update public.profiles set login_set_at = now() where id = r.id;
   return u;
 end $$;
+
+-- LOG IN with the secret username only: returns the account email for
+-- it (or null), so the browser can sign in with Supabase Auth. Only
+-- someone who already knows the secret username gets an answer.
+create or replace function public.login_email(p_code text)
+returns text language sql stable security definer set search_path = public as $$
+  select u.email from public.identity_checks c join auth.users u on u.id = c.id
+   where c.login_hash = public._code_hash(p_code)
+   limit 1;
+$$;
 
 -- STEP 8: short story + shipping address → account fully registered.
 -- The address only pre-fills the shipping form at checkout, where the
@@ -734,6 +758,8 @@ revoke all on function public.claim_registration(uuid, text)               from 
 revoke all on function public.new_count_captcha()                          from public, anon;
 revoke all on function public.save_phone(text, text)                       from public, anon;
 revoke all on function public.new_login_code()                             from public, anon;
+revoke all on function public._code_hash(text)                             from public, anon, authenticated;
+revoke all on function public.login_email(text)                            from public;
 revoke all on function public.complete_registration(text, text, text, text) from public, anon;
 grant execute on function public.is_registered()                           to authenticated;
 grant execute on function public.start_registration(uuid)                  to anon, authenticated;
@@ -750,4 +776,5 @@ grant execute on function public.claim_registration(uuid, text)            to au
 grant execute on function public.new_count_captcha()                       to authenticated;
 grant execute on function public.save_phone(text, text)                    to authenticated;
 grant execute on function public.new_login_code()                          to authenticated;
+grant execute on function public.login_email(text)                         to anon, authenticated;
 grant execute on function public.complete_registration(text, text, text, text) to authenticated;

@@ -12,17 +12,18 @@ A demo store (clothing, objects, shoes, paintings) with a real backend on
   prices in the page source**, so they can't be read with "view source" /
   inspect.
 - **Sign-up (8 steps, in isiZulu):** riddle → number captcha → emoji picture
-  game → interests + age → name + email, and the Terms are accepted by
-  solving a sum captcha (account is created with a random temporary
+  game → interests + age → the Terms are accepted by solving a sum
+  captcha, then name + email (account is created with a random temporary
   password the user never sees) → counting captcha + phone → the server
-  gives a **random username**, which becomes the account password → short
-  story about a magician + shipping address (only used to pre-fill
-  checkout; a temporary one is fine). At the end a note tells the user to
-  log in from now on with their email and that username. The user never
-  types a password. Every step is enforced by a Postgres function in
-  `db/schema.sql`, so it can't be skipped from devtools. After changing
-  `db/schema.sql`, run it again in the SQL Editor.
-- **Log in:** email + the random username from step 7 (no password).
+  gives a **secret random username**, shown only on screen (nothing is
+  emailed), which becomes the account password → short story about a
+  magician + shipping address (only used to pre-fill checkout; a temporary
+  one is fine). At the end a note tells the user to keep that secret
+  username: it is the only thing needed to log in. Every step is enforced
+  by a Postgres function in `db/schema.sql`, so it can't be skipped from
+  devtools. After changing `db/schema.sql`, run it again in the SQL Editor.
+- **Log in:** only the secret username from step 7 (no email, no password).
+  The server keeps just its SHA-256 hash to find the account.
 - **After signing up / logging in:** the browser fetches the catalog and prices
   from Supabase and renders the store.
 - **Checkout:** orders are inserted into the `orders` table in Supabase and read

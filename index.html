@@ -161,7 +161,7 @@
   .field.invalid .emoji-cell { border-color: #b3261e; }
   .count-box img { width: 300px; max-width: calc(100% - 52px); height: auto; aspect-ratio: 2; }
   .wz-section { border-top: 1px dashed var(--line); margin-top: 22px; padding-top: 2px; }
-  #wzDone .note, .wz-section .note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin-bottom: 14px; }
+  #wzDone .note, #wz7 .note, .wz-section .note { background: #fff6e0; border: 1px solid #f0dca8; color: #7a5b12; border-radius: 10px; padding: 10px 12px; font-size: .84rem; margin-bottom: 14px; }
   .hint { display: block; color: var(--muted); font-size: .78rem; margin-top: 4px; }
   .counter { display: block; text-align: right; color: var(--muted); font-size: .78rem; margin-top: 4px; }
   .counter.ok { color: var(--ok); }
@@ -440,21 +440,8 @@
         </div>
       </form>
 
-      <!-- 5 · Account: name + email + terms (accepted by solving a sum captcha) -->
+      <!-- 5 · Terms (accepted by solving a sum captcha) first, then name + email -->
       <form class="wz-step" data-step="5" id="wz5" novalidate hidden>
-        <div class="field">
-          <label for="name">Igama eliphelele</label>
-          <input id="name" name="name" type="text" placeholder="isib. Thandi Dlamini" autocomplete="name">
-          <div class="error">Sicela ufake igama lakho eliphelele.</div>
-        </div>
-        <!-- Hidden when the visitor is already signed in (account exists). -->
-        <div id="acctFields">
-          <div class="field">
-            <label for="regEmail">I-imeyili</label>
-            <input id="regEmail" name="regEmail" type="email" placeholder="wena@example.com" autocomplete="email">
-            <div class="error">Sicela ufake i-imeyili evumelekile.</div>
-          </div>
-        </div>
         <div class="terms-box">
           <span style="font-size:1.8rem">📄</span>
           <div>
@@ -475,7 +462,20 @@
           <small class="hint">Ngokuxazulula lesi sibalo, uyavuma ukuthi uyifundile futhi uyayamukela Imigomo Nemibandela.</small>
           <div class="error" id="termsErr">Vula Imigomo Nemibandela bese ubhala impendulo yesibalo.</div>
         </div>
-        <p class="hint" id="termsDone" hidden>✅ Imigomo Nemibandela yamukelwe.</p>
+        <p class="hint" id="termsDone" hidden style="margin-bottom:14px">✅ Imigomo Nemibandela yamukelwe.</p>
+        <div class="field">
+          <label for="name">Igama eliphelele</label>
+          <input id="name" name="name" type="text" placeholder="isib. Thandi Dlamini" autocomplete="name">
+          <div class="error">Sicela ufake igama lakho eliphelele.</div>
+        </div>
+        <!-- Hidden when the visitor is already signed in (account exists). -->
+        <div id="acctFields">
+          <div class="field">
+            <label for="regEmail">I-imeyili</label>
+            <input id="regEmail" name="regEmail" type="email" placeholder="wena@example.com" autocomplete="email">
+            <div class="error">Sicela ufake i-imeyili evumelekile.</div>
+          </div>
+        </div>
         <button class="btn full" type="submit" id="acctBtn">Dala i-akhawunti yami</button>
       </form>
 
@@ -503,9 +503,9 @@
       <!-- 7 · Random username (given by the server). It is the login secret:
            the user logs in with email + this username, no password. -->
       <form class="wz-step" data-step="7" id="wz7" novalidate hidden>
-        <p class="sub" style="margin-bottom:12px">Sikunikeze igama lomsebenzisi elingahleliwe. <b>Leli gama lomsebenzisi liyiphasiwedi yakho.</b> Njalo uma ungena, uzobhala i-imeyili yakho kanye nalo gama lomsebenzisi.</p>
-        <div class="riddle"><span>🔑</span><p>Igama lakho lomsebenzisi (iphasiwedi yakho): <b id="username">Ilayisha…</b></p></div>
-        <p class="hint" style="margin-bottom:12px">Libhale phansi noma ulikopishe manje. Njengayo yonke iphasiwedi, ungalitsheli muntu.</p>
+        <p class="sub" style="margin-bottom:12px">Sikwenzele igama lomsebenzisi eliyimfihlo elingahleliwe. Likhonjiswa <b>kulesi sikrini kuphela</b> — alithunyelwa ndawo.</p>
+        <div class="riddle"><span>🔑</span><p>Igama lakho lomsebenzisi eliyimfihlo: <b id="username">Ilayisha…</b></p></div>
+        <p class="note">Sicela ulilondoloze manje (libhale phansi noma ulikopishe). Uzongena esikhathini esizayo <b>ngaleli gama lomsebenzisi eliyimfihlo kuphela</b> — ngaphandle kwalo ngeke ukwazi ukungena. Ungalitsheli muntu.</p>
         <button class="btn full" type="submit" id="codeBtn">Qhubeka</button>
       </form>
 
@@ -547,9 +547,9 @@
       <!-- Done: tells the user how to log in from now on -->
       <div id="wzDone" hidden>
         <div class="riddle"><span>🎉</span><p>Ukubhalisa kwakho kuphelile!</p></div>
-        <p class="sub" style="margin-bottom:12px">Manje ungangena nganoma yisiphi isikhathi usebenzisa <b>i-imeyili yakho</b> kanye <b>negama lakho lomsebenzisi</b>, eliyiphasiwedi yakho:</p>
+        <p class="sub" style="margin-bottom:12px">Esikhathini esizayo uzongena <b>ngegama lakho lomsebenzisi eliyimfihlo kuphela</b>:</p>
         <div class="riddle"><span>🔑</span><p><b id="doneUser"></b></p></div>
-        <p class="note">Gcina leli gama lomsebenzisi endaweni ephephile futhi ungalitsheli muntu — yiphasiwedi yakho, uzoyidinga njalo uma ungena.</p>
+        <p class="note">Leli gama likhonjiswa kulesi sikrini kuphela futhi alithunyelwa ndawo. Sicela ulilondoloze endaweni ephephile futhi ungalitsheli muntu — ngaphandle kwalo ngeke ukwazi ukungena.</p>
         <button class="btn full" type="button" id="doneBtn">Qala ukuthenga</button>
       </div>
 
@@ -557,17 +557,12 @@
     </div>
 
     <form id="loginForm" novalidate hidden>
+      <!-- Log in with ONLY the secret random username from step 7. -->
       <div class="field">
-        <label for="logEmail">I-imeyili</label>
-        <input id="logEmail" name="logEmail" type="email" placeholder="wena@example.com" autocomplete="email">
-        <div class="error">Sicela ufake i-imeyili evumelekile.</div>
-      </div>
-      <!-- The random username from step 7 works as the password. -->
-      <div class="field">
-        <label for="logUser">Igama lomsebenzisi (iphasiwedi yakho)</label>
+        <label for="logUser">Igama lomsebenzisi eliyimfihlo</label>
         <input id="logUser" name="logUser" type="password" placeholder="isib. ingwe-k7m2qx9a" autocomplete="current-password" autocapitalize="none" spellcheck="false">
-        <small class="hint">Igama lomsebenzisi esikunike lona lapho ubhalisa — liyiphasiwedi yakho.</small>
-        <div class="error">Sicela ufake igama lakho lomsebenzisi.</div>
+        <small class="hint">Igama lomsebenzisi eliyimfihlo esikunike lona lapho ubhalisa.</small>
+        <div class="error">Sicela ufake igama lakho lomsebenzisi eliyimfihlo.</div>
       </div>
       <button class="btn full" type="submit">Ngena</button>
     </form>
@@ -1177,7 +1172,7 @@ $("sort").addEventListener("change", renderGrid);
 // prices / orders stay locked by RLS until the server marks the profile as
 // completed, so editing this code in devtools cannot unlock the shop.
 const STEP_NAMES = ["Imfumbe", "Ukuqinisekisa", "Umdlalo wezithombe", "Okuthandayo",
-                    "I-akhawunti yakho", "Uvivinyo lwesibili", "Igama lomsebenzisi nephasiwedi", "Indaba nekheli"];
+                    "I-akhawunti yakho", "Uvivinyo lwesibili", "Igama lomsebenzisi eliyimfihlo", "Indaba nekheli"];
 const STEPS = STEP_NAMES.length;
 const STORY_MIN = 150;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1541,8 +1536,8 @@ async function createAccount(name, email) {
   if (error) {
     if (/registered|exists/i.test(error.message)) {
       save(PENDING_KEY, { name });
-      toast("Le imeyili isivele ine-akhawunti. Ngena nge-imeyili yakho negama lakho lomsebenzisi.");
-      setAuthMode("login"); $("logEmail").value = email;
+      toast("Le imeyili isivele ine-akhawunti. Ngena ngegama lakho lomsebenzisi eliyimfihlo.");
+      setAuthMode("login");
     } else toast(error.message);
     return false;
   }
@@ -1673,12 +1668,16 @@ $("loginForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!sb) { toast("Backend not configured yet — add your Supabase keys in config.js."); return; }
   const f = e.target;
-  const email = f.logEmail.value.trim(), code = f.logUser.value.trim();
-  if (!validate(f, { logEmail: EMAIL_RE.test(email), logUser: code.length >= 3 })) return;
+  const code = f.logUser.value.trim().toLowerCase();
+  if (!validate(f, { logUser: code.length >= 3 })) return;
   await withBusy(f.querySelector("[type=submit]"), "Iyangena…", async () => {
-    // Email + the random username from step 7 (it is the account password).
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: code });
-    if (error) { toast("I-imeyili noma igama lomsebenzisi alilungile."); return; }
+    // Only the secret username: the server finds the account for it, and
+    // it is also the account password in Supabase Auth.
+    const { data: email, error: lookupError } = await sb.rpc("login_email", { p_code: code });
+    const { data, error } = !lookupError && email
+      ? await sb.auth.signInWithPassword({ email, password: code })
+      : { data: null, error: true };
+    if (error) { toast("Igama lomsebenzisi eliyimfihlo alilungile."); return; }
     authUserId = data.user.id;
     f.reset();
     await afterAuth();
